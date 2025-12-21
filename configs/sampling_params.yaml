@@ -1,0 +1,95 @@
+# Edge SLM Benchmark - Sampling Parameters Configuration
+# Paramètres d'échantillonnage standardisés pour reproductibilité
+
+# === PARAMÈTRES PAR DÉFAUT (BENCHMARK) ===
+# Pour les tâches de benchmark: déterministe
+benchmark_defaults:
+  temperature: 0            # Déterministe
+  top_p: 1                  # Pas de nucleus sampling
+  top_k: -1                 # Désactivé
+  frequency_penalty: 0
+  presence_penalty: 0
+  seed: 42                  # Reproductibilité
+
+# === PARAMÈTRES PAR TYPE DE TÂCHE ===
+task_specific:
+  # Classification (Banking77, Sentiment)
+  classification:
+    temperature: 0
+    top_p: 1
+    max_tokens: 50
+    stop_sequences: ["\n", ".", ","]
+    
+  # Génération de texte (Résumé, FAQ)
+  generation:
+    temperature: 0
+    top_p: 1
+    max_tokens: 512
+    stop_sequences: []
+    
+  # Sortie JSON structurée
+  structured_output:
+    temperature: 0
+    top_p: 1
+    max_tokens: 300
+    response_format:
+      type: "json_object"
+      
+  # Génération de code
+  code_generation:
+    temperature: 0
+    top_p: 1
+    max_tokens: 256
+    stop_sequences:
+      - "\ndef "
+      - "\nclass "
+      - "\nif __name__"
+      - "\n#"
+      - "\n\n\n"
+      
+  # QA extractif
+  question_answering:
+    temperature: 0
+    top_p: 1
+    max_tokens: 200
+    stop_sequences: ["\n\n"]
+
+# === PARAMÈTRES PAR SCÉNARIO DE PERFORMANCE ===
+performance_scenarios:
+  interactive_assistant:
+    temperature: 0
+    top_p: 1
+    max_tokens: 128
+    stream: true            # Streaming pour mesure TTFT
+    
+  long_form_summarization:
+    temperature: 0
+    top_p: 1
+    max_tokens: 512
+    stream: true
+    
+  structured_json_output:
+    temperature: 0
+    top_p: 1
+    max_tokens: 300
+    stream: true
+    response_format:
+      type: "json_object"
+
+# === CONTEXT WINDOW SETTINGS ===
+context_settings:
+  # Context effectif standardisé pour comparaison équitable
+  effective_context: 8192
+  
+  # Marges de sécurité
+  input_margin: 512         # Tokens réservés pour le prompt système
+  output_margin: 512        # Tokens réservés pour la réponse
+
+# === NOTES MÉTHODOLOGIQUES ===
+methodology_notes:
+  - "temperature=0 pour reproductibilité des benchmarks"
+  - "top_p=1 pour éviter le nucleus sampling"
+  - "seed=42 fixé quand supporté par le modèle"
+  - "Tous les modèles utilisent les mêmes paramètres pour comparaison équitable"
+  - "Les paramètres peuvent être ajustés pour tests de sensibilité"
+

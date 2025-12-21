@@ -1,0 +1,179 @@
+# Edge SLM Benchmark - Performance Scenarios Configuration
+# Définition des scénarios de benchmark performance
+
+# Protocole d'exécution global
+protocol:
+  warmup_runs: 3          # Requêtes de warm-up (non comptées)
+  benchmark_runs: 20      # Nombre de runs par scénario
+  cooldown_seconds: 2     # Pause entre les runs
+  
+  # Conditions d'exécution
+  execution_conditions:
+    - "Machine branchée sur secteur"
+    - "Mode économie d'énergie désactivé"
+    - "Applications lourdes fermées (navigateur, IDE secondaires)"
+    - "Température ambiante stable (~20-25°C)"
+
+# Métriques à collecter pour tous les scénarios
+metrics:
+  timing:
+    - ttft_ms           # Time To First Token (ms)
+    - total_time_ms     # Temps total de génération (ms)
+  throughput:
+    - output_tokens_per_sec   # Débit génération
+    - prompt_tokens_per_sec   # Vitesse ingestion prompt
+  memory:
+    - peak_ram_mb       # RAM maximale utilisée
+    - avg_ram_mb        # RAM moyenne pendant génération
+  statistics:
+    - mean
+    - std
+    - p50
+    - p95
+    - min
+    - max
+
+# === SCÉNARIOS DE PERFORMANCE ===
+scenarios:
+  # Scénario 1: Assistant Interactif
+  interactive_assistant:
+    name: "Interactive Assistant"
+    description: "Simulation d'un assistant bancaire répondant à des questions courtes"
+    category: "latency_sensitive"
+    
+    parameters:
+      input_tokens_range: [200, 400]
+      output_tokens: 128
+      max_tokens: 128
+      
+    metrics_focus:
+      - ttft_ms           # Critique pour UX interactive
+      - output_tokens_per_sec
+      
+    prompts_file: "prompts/interactive_assistant.yaml"
+    
+    # Seuils de qualité (indicatifs)
+    quality_thresholds:
+      ttft_ms_max: 500      # < 500ms pour bonne UX
+      tokens_per_sec_min: 20
+
+  # Scénario 2: Résumé Long
+  long_form_summarization:
+    name: "Long-form Summarization"
+    description: "Résumé de documents longs (rapports, notes internes)"
+    category: "throughput_sensitive"
+    
+    parameters:
+      input_tokens_range: [2000, 4000]
+      output_tokens_range: [256, 512]
+      max_tokens: 512
+      
+    metrics_focus:
+      - output_tokens_per_sec
+      - peak_ram_mb
+      - total_time_ms
+      
+    prompts_file: "prompts/summarization.yaml"
+    
+    quality_thresholds:
+      tokens_per_sec_min: 15
+      peak_ram_mb_max: 12000  # 12GB pour laptop 16GB
+
+  # Scénario 3: Sortie JSON Structurée
+  structured_json_output:
+    name: "Structured JSON Output"
+    description: "Extraction d'informations avec sortie JSON contrainte"
+    category: "reliability_sensitive"
+    
+    parameters:
+      input_tokens_range: [500, 1000]
+      output_tokens_range: [100, 300]
+      max_tokens: 300
+      use_structured_output: true
+      
+    metrics_focus:
+      - json_valid_rate     # Taux de JSON valides
+      - output_tokens_per_sec
+      - ttft_ms
+      
+    prompts_file: "prompts/json_extraction.yaml"
+    
+    quality_thresholds:
+      json_valid_rate_min: 0.95   # 95% de JSON valides minimum
+      tokens_per_sec_min: 15
+
+# === SCÉNARIOS RÉALISTES BANKING ===
+realistic_scenarios:
+  # FAQ Bancaire
+  banking_faq:
+    name: "Banking FAQ Assistant"
+    description: "Réponses aux questions clients courantes sur les services bancaires"
+    category: "interactive"
+    
+    parameters:
+      input_tokens_range: [100, 300]
+      output_tokens: 200
+      max_tokens: 200
+      
+    evaluation:
+      - response_relevance
+      - factual_accuracy
+      - response_time
+      
+    prompts_file: "prompts/banking_faq.yaml"
+
+  # Analyse de Sentiment
+  sentiment_analysis:
+    name: "Customer Feedback Sentiment"
+    description: "Classification de sentiment sur les retours clients"
+    category: "classification"
+    
+    parameters:
+      input_tokens_range: [50, 200]
+      output_tokens: 50
+      max_tokens: 50
+      
+    evaluation:
+      - accuracy
+      - macro_f1
+      - confusion_matrix
+      
+    prompts_file: "prompts/sentiment.yaml"
+
+  # Extraction d'Informations
+  info_extraction:
+    name: "Document Information Extraction"
+    description: "Extraction structurée d'informations depuis documents"
+    category: "extraction"
+    
+    parameters:
+      input_tokens_range: [300, 800]
+      output_tokens: 200
+      max_tokens: 200
+      use_structured_output: true
+      
+    evaluation:
+      - field_accuracy
+      - json_valid_rate
+      - extraction_completeness
+      
+    prompts_file: "prompts/extraction.yaml"
+
+  # Résumé de Documents
+  document_summary:
+    name: "Internal Document Summary"
+    description: "Synthèse de rapports et notes internes"
+    category: "generation"
+    
+    parameters:
+      input_tokens_range: [1000, 3000]
+      output_tokens: 300
+      max_tokens: 300
+      
+    evaluation:
+      - rouge_scores
+      - key_info_coverage
+      - coherence
+      
+    prompts_file: "prompts/document_summary.yaml"
+

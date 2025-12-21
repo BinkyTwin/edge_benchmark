@@ -1,0 +1,159 @@
+# Task Templates
+# Templates de prompts par type de tâche
+
+# === MULTIPLE CHOICE (MCQ) ===
+mcq:
+  standard:
+    template: |
+      Question: {question}
+      
+      A) {choice_a}
+      B) {choice_b}
+      C) {choice_c}
+      D) {choice_d}
+      
+      Answer with only the letter (A, B, C, or D):
+      
+  with_context:
+    template: |
+      Context: {context}
+      
+      Question: {question}
+      
+      A) {choice_a}
+      B) {choice_b}
+      C) {choice_c}
+      D) {choice_d}
+      
+      Answer with only the letter (A, B, C, or D):
+
+# === CLASSIFICATION ===
+classification:
+  intent:
+    template: |
+      Classify the following customer query into an intent category.
+      
+      Query: {text}
+      
+      Intent:
+      
+  sentiment:
+    template: |
+      Analyze the sentiment of the following text.
+      
+      Text: {text}
+      
+      Sentiment (positive/negative/neutral):
+      
+  binary:
+    template: |
+      {instruction}
+      
+      Text: {text}
+      
+      Answer (yes/no):
+
+# === JSON OUTPUT ===
+json_output:
+  extraction:
+    template: |
+      Extract the following information from the document and return as JSON:
+      
+      Fields to extract: {fields}
+      
+      Document:
+      {document}
+      
+      JSON Output:
+      
+  structured_response:
+    template: |
+      {instruction}
+      
+      Input: {input}
+      
+      Respond with valid JSON matching this schema:
+      {schema}
+
+# === SUMMARIZATION ===
+summarization:
+  standard:
+    template: |
+      Summarize the following document in {max_sentences} sentences or less:
+      
+      Document:
+      {document}
+      
+      Summary:
+      
+  key_points:
+    template: |
+      Extract the key points from the following document as a bullet list:
+      
+      Document:
+      {document}
+      
+      Key Points:
+
+# === QUESTION ANSWERING ===
+question_answering:
+  extractive:
+    template: |
+      Based on the following context, answer the question.
+      
+      Context: {context}
+      
+      Question: {question}
+      
+      Answer:
+      
+  closed_book:
+    template: |
+      Answer the following question concisely:
+      
+      Question: {question}
+      
+      Answer:
+
+# === CODE GENERATION ===
+code_generation:
+  completion:
+    template: |
+      Complete the following Python function:
+      
+      {function_signature}
+      
+  from_docstring:
+    template: |
+      Implement the following Python function based on its docstring:
+      
+      {docstring}
+      
+      Implementation:
+
+# === BANKING SPECIFIC ===
+banking:
+  faq_response:
+    template: |
+      Customer Question: {question}
+      
+      Please provide a helpful and accurate response:
+      
+  document_analysis:
+    template: |
+      Analyze the following banking document and {instruction}:
+      
+      Document:
+      {document}
+      
+      Analysis:
+      
+  transaction_classification:
+    template: |
+      Classify the following transaction:
+      
+      Description: {description}
+      Amount: {amount}
+      
+      Category:
+

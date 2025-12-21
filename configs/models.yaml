@@ -1,0 +1,127 @@
+# Edge SLM Benchmark - Models Configuration
+# Définition standardisée des modèles à évaluer (GGUF + MLX)
+
+# Paramètres globaux d'échantillonnage (uniformes pour tous les modèles)
+sampling_defaults: &sampling_defaults
+  temperature: 0
+  top_p: 1
+  max_tokens: 512
+  
+# Context window effectif standardisé pour comparaison équitable
+context_defaults: &context_defaults
+  effective_context: 8192  # Standardisé pour tous les tests
+
+models:
+  # === GEMMA 3n E4B ===
+  gemma_3n_e4b_mlx:
+    id: "google/gemma-3n-e4b"
+    display_name: "Gemma 3n E4B (MLX 4bit)"
+    publisher: "google"
+    architecture: "gemma3n"
+    type: "vlm"
+    format: "mlx"
+    quantization: "4bit"
+    max_context_length: 32768
+    <<: *context_defaults
+    <<: *sampling_defaults
+    capabilities: []
+    notes: "Edge-optimized, multimodal capable"
+    license: "Gemma Terms of Use"
+    license_type: "custom"
+
+  gemma_3n_e4b_gguf:
+    id: "google/gemma-3n-e4b"
+    display_name: "Gemma 3n E4B (GGUF Q4_K_M)"
+    publisher: "google"
+    architecture: "gemma3n"
+    type: "llm"
+    format: "gguf"
+    quantization: "Q4_K_M"
+    max_context_length: 32768
+    <<: *context_defaults
+    <<: *sampling_defaults
+    capabilities: []
+    notes: "Edge-optimized, GGUF format"
+    license: "Gemma Terms of Use"
+    license_type: "custom"
+
+  # === QWEN3-VL 4B ===
+  qwen3_vl_4b_mlx:
+    id: "qwen/qwen3-vl-4b"
+    display_name: "Qwen3-VL 4B (MLX 4bit)"
+    publisher: "qwen"
+    architecture: "qwen3_vl"
+    type: "vlm"
+    format: "mlx"
+    quantization: "4bit"
+    max_context_length: 262144
+    <<: *context_defaults
+    <<: *sampling_defaults
+    capabilities:
+      - "tool_use"
+    notes: "Vision-language model, very long context"
+    license: "Apache 2.0"
+    license_type: "permissive"
+
+  qwen3_vl_4b_gguf:
+    id: "qwen/qwen3-vl-4b"
+    display_name: "Qwen3-VL 4B (GGUF Q4_K_M)"
+    publisher: "qwen"
+    architecture: "qwen3vl"
+    type: "vlm"
+    format: "gguf"
+    quantization: "Q4_K_M"
+    max_context_length: 262144
+    <<: *context_defaults
+    <<: *sampling_defaults
+    capabilities:
+      - "tool_use"
+    notes: "Vision-language model, GGUF format"
+    license: "Apache 2.0"
+    license_type: "permissive"
+
+  # === MINISTRAL 3 3B ===
+  ministral_3_3b_gguf:
+    id: "mistralai/ministral-3-3b"
+    display_name: "Ministral 3 3B (GGUF Q4_K_M)"
+    publisher: "mistralai"
+    architecture: "mistral3"
+    type: "vlm"
+    format: "gguf"
+    quantization: "Q4_K_M"
+    max_context_length: 262144
+    <<: *context_defaults
+    <<: *sampling_defaults
+    capabilities:
+      - "tool_use"
+    notes: "Edge-oriented, multimodal"
+    license: "Apache 2.0"
+    license_type: "permissive"
+
+# Groupes de modèles pour comparaisons
+model_groups:
+  all_models:
+    - gemma_3n_e4b_mlx
+    - gemma_3n_e4b_gguf
+    - qwen3_vl_4b_mlx
+    - qwen3_vl_4b_gguf
+    - ministral_3_3b_gguf
+
+  gguf_only:
+    - gemma_3n_e4b_gguf
+    - qwen3_vl_4b_gguf
+    - ministral_3_3b_gguf
+
+  mlx_only:
+    - gemma_3n_e4b_mlx
+    - qwen3_vl_4b_mlx
+
+  # Pour comparaison GGUF vs MLX (même modèle, formats différents)
+  format_comparison:
+    gemma:
+      - gemma_3n_e4b_mlx
+      - gemma_3n_e4b_gguf
+    qwen:
+      - qwen3_vl_4b_mlx
+      - qwen3_vl_4b_gguf
+

@@ -1,0 +1,210 @@
+# Edge SLM Benchmark - Evaluation Tasks Configuration
+# Définition des tâches d'évaluation de capacités
+
+# === MINI-BENCHMARK LM-EVALUATION-HARNESS ===
+# Objectif: Validation rapide, pas exhaustif
+# Durée estimée: ~30min-1h par modèle
+
+harness_tasks:
+  # MMLU - Connaissances multi-domaines (subset)
+  mmlu_mini:
+    task_name: "mmlu"
+    description: "Massive Multitask Language Understanding (subset)"
+    framework: "lm-evaluation-harness"
+    
+    config:
+      num_fewshot: 5
+      limit: 200              # Subset de 200 questions
+      batch_size: 4
+      
+    subjects_subset:          # Domaines pertinents banking
+      - "professional_accounting"
+      - "business_ethics"
+      - "management"
+      - "marketing"
+      - "professional_law"
+      
+    metrics:
+      - accuracy
+      - accuracy_stderr
+      
+    estimated_time_minutes: 20
+
+  # GSM8K - Raisonnement mathématique (subset)
+  gsm8k_mini:
+    task_name: "gsm8k"
+    description: "Grade School Math 8K (subset)"
+    framework: "lm-evaluation-harness"
+    
+    config:
+      num_fewshot: 5
+      limit: 100              # Subset de 100 problèmes
+      batch_size: 4
+      
+    metrics:
+      - exact_match
+      - accuracy
+      
+    estimated_time_minutes: 15
+
+# === TÂCHES BANKING - FOCUS PRINCIPAL ===
+banking_tasks:
+  # Banking77 - Classification d'intents
+  banking77:
+    name: "Banking77 Intent Classification"
+    description: "Classification de requêtes bancaires en 77 catégories d'intent"
+    source: "PolyAI/banking77"
+    framework: "lmstudio"
+    
+    dataset:
+      huggingface_id: "PolyAI/banking77"
+      split: "test"
+      sample_size: null       # Utiliser tout le test set (~3k exemples)
+      
+    task_type: "classification"
+    num_classes: 77
+    
+    prompt_template: |
+      Classify the following banking customer query into one of the intent categories.
+      
+      Query: {text}
+      
+      Respond with ONLY the intent category name, nothing else.
+      
+    metrics:
+      - accuracy
+      - macro_f1
+      - per_class_f1
+      
+    evaluation_settings:
+      temperature: 0
+      max_tokens: 50
+      
+  # Financial PhraseBank - Sentiment
+  financial_phrasebank:
+    name: "Financial PhraseBank Sentiment"
+    description: "Analyse de sentiment sur news financières"
+    source: "takala/financial_phrasebank"
+    framework: "lmstudio"
+    
+    dataset:
+      huggingface_id: "takala/financial_phrasebank"
+      config: "sentences_allagree"  # Subset avec accord unanime
+      split: "train"                # Pas de split test, on sample
+      sample_size: 1000             # Subset représentatif
+      
+    task_type: "classification"
+    num_classes: 3
+    class_labels:
+      - "positive"
+      - "negative"
+      - "neutral"
+      
+    prompt_template: |
+      Analyze the sentiment of the following financial news sentence.
+      
+      Sentence: {sentence}
+      
+      Respond with exactly one word: positive, negative, or neutral.
+      
+    metrics:
+      - accuracy
+      - macro_f1
+      - confusion_matrix
+      
+    evaluation_settings:
+      temperature: 0
+      max_tokens: 10
+
+  # FinTextQA - QA Finance (optionnel)
+  fintextqa:
+    name: "FinTextQA"
+    description: "Question-Answering sur documents financiers"
+    source: "fintextqa"
+    framework: "lmstudio"
+    enabled: false            # Optionnel, désactivé par défaut
+    
+    dataset:
+      source: "manual"        # Nécessite téléchargement manuel
+      sample_size: 100
+      
+    task_type: "qa"
+    
+    prompt_template: |
+      Based on the following financial document, answer the question.
+      
+      Document: {context}
+      
+      Question: {question}
+      
+      Answer:
+      
+    metrics:
+      - exact_match
+      - f1_score
+      - rouge_l
+
+# === TEST DE CODAGE (MINI) ===
+coding_tasks:
+  humaneval_mini:
+    name: "HumanEval Mini"
+    description: "Évaluation de génération de code Python (subset)"
+    source: "openai/humaneval"
+    framework: "lmstudio"
+    
+    dataset:
+      huggingface_id: "openai/openai_humaneval"
+      split: "test"
+      sample_size: 30         # Subset de 30 problèmes
+      
+    task_type: "code_generation"
+    language: "python"
+    
+    prompt_template: |
+      Complete the following Python function:
+      
+      {prompt}
+      
+    metrics:
+      - pass_at_1
+      - syntax_valid_rate
+      
+    evaluation_settings:
+      temperature: 0
+      max_tokens: 256
+      stop_sequences:
+        - "\ndef "
+        - "\nclass "
+        - "\n#"
+
+# === CONFIGURATION DES SETTINGS A/B ===
+evaluation_settings:
+  setting_a_realistic:
+    name: "Realistic (Native Templates)"
+    description: "Utilise les templates chat natifs de LM Studio"
+    use_native_templates: true
+    apply_chat_template: true
+    
+  setting_b_controlled:
+    name: "Controlled (Unified Prompts)"
+    description: "Prompt unifié sans template spécifique"
+    use_native_templates: false
+    apply_chat_template: false
+    raw_prompt_format: |
+      {system_prompt}
+      
+      {user_prompt}
+
+# Ordre d'exécution recommandé
+execution_order:
+  priority_1_banking:
+    - banking77
+    - financial_phrasebank
+  priority_2_coding:
+    - humaneval_mini
+  priority_3_harness:
+    - mmlu_mini
+    - gsm8k_mini
+  optional:
+    - fintextqa
+
