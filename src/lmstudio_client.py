@@ -279,9 +279,10 @@ class LMStudioClient:
                         metrics.prompt_tokens_per_sec = metrics.prompt_tokens / prompt_time_sec
             
             # Vérifier si JSON valide (pour structured output)
+            # Supporte json_object (OpenAI) et json_schema (LM Studio)
             json_valid = False
             parsed_json = None
-            if response_format and response_format.get("type") == "json_object":
+            if response_format and response_format.get("type") in ("json_object", "json_schema"):
                 try:
                     parsed_json = json.loads(content)
                     json_valid = True

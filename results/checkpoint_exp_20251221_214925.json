@@ -16,14 +16,26 @@
       "scenario": "interactive_assistant",
       "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_interactive_assistant.jsonl",
       "completed_at": "2025-12-21T21:52:25.211765"
+    },
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "long_form_summarization",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_long_form_summarization.jsonl",
+      "completed_at": "2025-12-21T21:57:19.274432"
+    },
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "structured_json_output",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_structured_json_output.jsonl",
+      "completed_at": "2025-12-21T21:58:05.345024"
     }
   ],
   "failed": [],
   "started_at": "2025-12-21T21:49:25.696019",
-  "last_updated": "2025-12-21T21:52:25.211776",
+  "last_updated": "2025-12-21T21:58:05.345084",
   "progress": {
     "total": 3,
-    "completed": 1,
+    "completed": 3,
     "failed": 0
   }
 }

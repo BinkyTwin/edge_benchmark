@@ -1,0 +1,20 @@
+{
+  "experiment_id": "exp_20251221_222529",
+  "task_type": "performance",
+  "planned_models": [
+    "gemma_3n_e4b_gguf"
+  ],
+  "planned_scenarios": [
+    "structured_json_output"
+  ],
+  "planned_tasks": [],
+  "completed": [],
+  "failed": [],
+  "started_at": "2025-12-21T22:25:29.938458",
+  "last_updated": "2025-12-21T22:25:29.938461",
+  "progress": {
+    "total": 1,
+    "completed": 0,
+    "failed": 0
+  }
+}

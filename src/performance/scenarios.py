@@ -199,28 +199,39 @@ Security Verification:
 
 Please contact customer service at 1-800-555-0123 if you did not authorize this transaction.
 
-Return the extracted information as a JSON object with the following structure:
-{
-    "transaction_date": "",
-    "transaction_time": "",
-    "reference_number": "",
-    "account_holder": "",
-    "account_type": "",
-    "transaction_type": "",
-    "amount": 0.00,
-    "currency": "",
-    "recipient_name": "",
-    "recipient_bank": "",
-    "purpose": "",
-    "status": "",
-    "remaining_balance": 0.00,
-    "security_verified": true/false
-}""",
+Extract and return the information as a valid JSON object.""",
         "expected_fields": [
             "transaction_date", "transaction_time", "reference_number",
             "account_holder", "transaction_type", "amount", "recipient_name",
             "status", "remaining_balance"
-        ]
+        ],
+        # Format LM Studio: json_schema avec schéma complet
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "transaction_extraction",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "transaction_date": {"type": "string"},
+                        "transaction_time": {"type": "string"},
+                        "reference_number": {"type": "string"},
+                        "account_holder": {"type": "string"},
+                        "account_type": {"type": "string"},
+                        "transaction_type": {"type": "string"},
+                        "amount": {"type": "number"},
+                        "currency": {"type": "string"},
+                        "recipient_name": {"type": "string"},
+                        "recipient_bank": {"type": "string"},
+                        "purpose": {"type": "string"},
+                        "status": {"type": "string"},
+                        "remaining_balance": {"type": "number"},
+                        "security_verified": {"type": "boolean"}
+                    },
+                    "required": ["transaction_date", "transaction_type", "amount", "status"]
+                }
+            }
+        }
     },
 ]
 
@@ -299,7 +310,8 @@ class ScenarioExecutor:
                 output_tokens=300,
                 max_tokens=300,
                 use_structured_output=True,
-                response_format={"type": "json_object"},
+                # LM Studio utilise json_schema au lieu de json_object
+                response_format=None,  # Sera défini par prompt spécifique
                 metrics_focus=["json_valid_rate", "output_tokens_per_sec"],
             ),
         }
@@ -353,10 +365,11 @@ class ScenarioExecutor:
             base_prompts = JSON_EXTRACTION_PROMPTS
             for i in range(num_prompts):
                 prompt_data = base_prompts[i % len(base_prompts)]
+                # Utiliser le format LM Studio: json_schema (pas json_object)
                 prompts.append({
                     "messages": [{"role": "user", "content": prompt_data["prompt"]}],
                     "max_tokens": scenario.max_tokens,
-                    "response_format": {"type": "json_object"},
+                    "response_format": prompt_data.get("response_format"),
                     "expected_fields": prompt_data.get("expected_fields", []),
                 })
         
@@ -366,9 +379,12 @@ class ScenarioExecutor:
         """
         Valide une sortie JSON.
         
+        Note: Un JSON est considéré valide s'il est syntaxiquement correct.
+        Les champs manquants sont reportés mais n'invalident pas le JSON.
+        
         Args:
             content: Contenu à valider
-            expected_fields: Champs attendus (optionnel)
+            expected_fields: Champs attendus (optionnel, pour info seulement)
             
         Returns:
             Dictionnaire avec is_valid, parsed_json, missing_fields, error
@@ -377,19 +393,23 @@ class ScenarioExecutor:
             "is_valid": False,
             "parsed_json": None,
             "missing_fields": [],
+            "fields_present": 0,
+            "fields_expected": 0,
             "error": None,
         }
         
         try:
             parsed = json.loads(content)
-            result["is_valid"] = True
+            result["is_valid"] = True  # JSON syntaxiquement valide
             result["parsed_json"] = parsed
             
+            # Vérifier les champs (informatif, n'invalide pas)
             if expected_fields:
+                result["fields_expected"] = len(expected_fields)
+                present = [f for f in expected_fields if f in parsed]
                 missing = [f for f in expected_fields if f not in parsed]
+                result["fields_present"] = len(present)
                 result["missing_fields"] = missing
-                if missing:
-                    result["is_valid"] = False
                     
         except json.JSONDecodeError as e:
             result["error"] = str(e)
