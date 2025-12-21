@@ -348,3 +348,4 @@ class LicenseAuditor:
         print(f"Banking Compatible: {summary['banking_compatible']}/{len(self.licenses)}")
         print("=" * 60)
 
+

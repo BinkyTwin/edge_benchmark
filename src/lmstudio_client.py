@@ -446,3 +446,4 @@ def create_classification_prompt(
     labels_str = ", ".join(labels)
     return f"{instruction}\n\nText: {text}\n\nPossible labels: {labels_str}\n\nLabel:"
 
+

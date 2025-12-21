@@ -364,3 +364,4 @@ Ensure the code is syntactically correct."""
         print(f"Total time:      {result.total_time_seconds:.1f}s")
         print(f"{'─'*40}")
 
+

@@ -13,10 +13,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import yaml
 from tqdm import tqdm
 
 from ..lmstudio_client import LMStudioClient, CompletionResult
+from ..statistics import StatisticalAnalyzer, ConfidenceInterval
+from ..reproducibility import ReproducibilityManager
 from .metrics import MetricsCollector, MemoryMonitor, AggregatedMetrics
 from .scenarios import ScenarioExecutor, ScenarioConfig
 
@@ -31,6 +34,7 @@ class BenchmarkConfig:
     stream: bool = True
     temperature: float = 0
     top_p: float = 1
+    seed: int = 42  # Seed pour reproductibilité
 
 
 @dataclass
@@ -48,6 +52,12 @@ class BenchmarkResult:
     # Métriques spécifiques au scénario
     json_valid_rate: Optional[float] = None
     
+    # Statistiques avancées (IC 95%)
+    confidence_intervals: Optional[dict] = None
+    
+    # Environnement pour reproductibilité
+    environment: Optional[dict] = None
+    
     def to_dict(self) -> dict:
         """Convertit en dictionnaire."""
         return {
@@ -60,12 +70,15 @@ class BenchmarkResult:
                 "stream": self.config.stream,
                 "temperature": self.config.temperature,
                 "top_p": self.config.top_p,
+                "seed": self.config.seed,
             },
             "metrics": self.metrics.to_dict(),
+            "confidence_intervals": self.confidence_intervals,
             "json_valid_rate": self.json_valid_rate,
             "timestamp": self.timestamp,
             "duration_seconds": round(self.duration_seconds, 2),
             "num_raw_results": len(self.raw_results),
+            "environment": self.environment,
         }
 
 
@@ -203,6 +216,9 @@ class PerformanceRunner:
         if scenario.use_structured_output:
             json_valid_rate = json_valid_count / len(prompts) if prompts else 0
         
+        # Calculer les intervalles de confiance (IC 95%)
+        confidence_intervals = self._compute_confidence_intervals(collector.get_raw_data())
+        
         result = BenchmarkResult(
             model_id=model_id,
             scenario_name=scenario_name,
@@ -212,6 +228,7 @@ class PerformanceRunner:
             timestamp=datetime.now().isoformat(),
             duration_seconds=duration,
             json_valid_rate=json_valid_rate,
+            confidence_intervals=confidence_intervals,
         )
         
         # Afficher le résumé
@@ -334,16 +351,114 @@ class PerformanceRunner:
         df.to_csv(filepath, index=False)
         print(f"\n[Saved] Comparison saved to {filepath}")
     
+    def _compute_confidence_intervals(self, raw_data: list[dict]) -> dict:
+        """
+        Calcule les intervalles de confiance 95% pour les métriques clés.
+        
+        Utilise bootstrap pour robustesse (pas d'hypothèse de normalité).
+        
+        Args:
+            raw_data: Données brutes des runs
+            
+        Returns:
+            Dictionnaire avec IC pour chaque métrique
+        """
+        if not raw_data:
+            return {}
+        
+        # Extraire les valeurs des runs réussis
+        successful = [r for r in raw_data if r.get("success", True)]
+        if len(successful) < 3:
+            return {"error": "insufficient_data"}
+        
+        analyzer = StatisticalAnalyzer(confidence_level=0.95)
+        
+        ci_results = {}
+        
+        # TTFT
+        ttft_values = np.array([r["ttft_ms"] for r in successful])
+        ci_ttft = analyzer.confidence_interval_bootstrap(ttft_values)
+        ci_results["ttft_ms"] = ci_ttft.to_dict()
+        
+        # Output tokens/s
+        tps_values = np.array([r["output_tokens_per_sec"] for r in successful if r["output_tokens_per_sec"] > 0])
+        if len(tps_values) > 2:
+            ci_tps = analyzer.confidence_interval_bootstrap(tps_values)
+            ci_results["output_tokens_per_sec"] = ci_tps.to_dict()
+        
+        # Total time
+        time_values = np.array([r["total_time_ms"] for r in successful])
+        ci_time = analyzer.confidence_interval_bootstrap(time_values)
+        ci_results["total_time_ms"] = ci_time.to_dict()
+        
+        return ci_results
+    
+    def compare_models_statistically(
+        self,
+        results: dict[str, BenchmarkResult],
+        metric: str = "ttft_ms",
+    ) -> list:
+        """
+        Compare statistiquement plusieurs modèles.
+        
+        Args:
+            results: Dict model_id -> BenchmarkResult
+            metric: Métrique à comparer
+            
+        Returns:
+            Liste de comparaisons avec tests de significativité
+        """
+        analyzer = StatisticalAnalyzer()
+        
+        # Extraire les données par modèle
+        models_data = {}
+        for model_id, result in results.items():
+            raw = result.raw_results
+            if metric == "ttft_ms":
+                values = [r["metrics"]["ttft_ms"] for r in raw if r.get("success", True)]
+            elif metric == "output_tokens_per_sec":
+                values = [r["metrics"]["output_tokens_per_sec"] for r in raw if r.get("success", True)]
+            else:
+                continue
+            models_data[model_id] = np.array(values)
+        
+        if len(models_data) < 2:
+            return []
+        
+        # Comparer tous les modèles
+        comparisons = analyzer.compare_all_models(
+            models_data=models_data,
+            metric_name=metric,
+            paired=True,  # Mêmes prompts utilisés
+        )
+        
+        return comparisons
+    
     def _print_summary(self, result: BenchmarkResult):
         """Affiche un résumé des résultats."""
         metrics = result.metrics
+        ci = result.confidence_intervals or {}
         
         print(f"\n{'─'*40}")
         print("RESULTS SUMMARY")
         print(f"{'─'*40}")
-        print(f"TTFT:           {metrics.ttft_mean_ms:.1f} ± {metrics.ttft_std_ms:.1f} ms")
+        
+        # TTFT avec IC
+        ttft_ci = ci.get("ttft_ms", {})
+        if ttft_ci and "lower" in ttft_ci:
+            print(f"TTFT:           {metrics.ttft_mean_ms:.1f} ms [95% CI: {ttft_ci['lower']:.1f}, {ttft_ci['upper']:.1f}]")
+        else:
+            print(f"TTFT:           {metrics.ttft_mean_ms:.1f} ± {metrics.ttft_std_ms:.1f} ms")
+        
         print(f"TTFT (p95):     {metrics.ttft_p95_ms:.1f} ms")
-        print(f"Output t/s:     {metrics.output_tps_mean:.1f} ± {metrics.output_tps_std:.1f}")
+        
+        # Tokens/s avec IC
+        tps_ci = ci.get("output_tokens_per_sec", {})
+        if tps_ci and "lower" in tps_ci:
+            print(f"Output t/s:     {metrics.output_tps_mean:.1f} [95% CI: {tps_ci['lower']:.1f}, {tps_ci['upper']:.1f}]")
+        else:
+            print(f"Output t/s:     {metrics.output_tps_mean:.1f} ± {metrics.output_tps_std:.1f}")
+        
         print(f"Peak RAM:       {metrics.peak_ram_mb:.1f} MB")
         print(f"Success rate:   {metrics.success_rate*100:.1f}%")
         
@@ -368,4 +483,5 @@ class PerformanceRunner:
             print(f"{model_id:<30} {m.ttft_mean_ms:<12.1f} {m.output_tps_mean:<10.1f} {m.peak_ram_mb:<10.1f}")
         
         print("=" * 60)
+
 
