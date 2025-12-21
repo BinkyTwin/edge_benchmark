@@ -64,3 +64,5 @@ logs/
 
 # HuggingFace cache
 ~/.cache/huggingface/
+
+TUTORIAL.md

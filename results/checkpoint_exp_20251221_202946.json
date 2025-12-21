@@ -1,0 +1,41 @@
+{
+  "experiment_id": "exp_20251221_202946",
+  "task_type": "performance",
+  "planned_models": [
+    "gemma_3n_e4b_gguf"
+  ],
+  "planned_scenarios": [
+    "interactive_assistant",
+    "long_form_summarization",
+    "structured_json_output"
+  ],
+  "planned_tasks": [],
+  "completed": [
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "interactive_assistant",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_interactive_assistant.jsonl",
+      "completed_at": "2025-12-21T20:32:35.193824"
+    },
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "long_form_summarization",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_long_form_summarization.jsonl",
+      "completed_at": "2025-12-21T20:37:17.151353"
+    },
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "structured_json_output",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_structured_json_output.jsonl",
+      "completed_at": "2025-12-21T20:38:03.500184"
+    }
+  ],
+  "failed": [],
+  "started_at": "2025-12-21T20:29:46.614785",
+  "last_updated": "2025-12-21T20:38:03.500203",
+  "progress": {
+    "total": 3,
+    "completed": 3,
+    "failed": 0
+  }
+}

@@ -198,18 +198,30 @@ class LMStudioClient:
             first_token_time = None
             content_chunks = []
             
+            # Construire les paramètres de base
+            # Note: LM Studio n'accepte pas response_format=null, on l'omet si None
+            base_params = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "top_p": top_p,
+                "max_tokens": max_tokens,
+            }
+            
+            # Ajouter les paramètres optionnels seulement s'ils sont définis
+            if response_format is not None:
+                base_params["response_format"] = response_format
+            if stop is not None:
+                base_params["stop"] = stop
+            
+            # Ajouter les kwargs
+            base_params.update(kwargs)
+            
             if stream:
                 # Mode streaming pour mesurer TTFT précisément
                 response = self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
                     stream=True,
-                    response_format=response_format,
-                    stop=stop,
-                    **kwargs,
+                    **base_params,
                 )
                 
                 for chunk in response:
@@ -231,15 +243,8 @@ class LMStudioClient:
             else:
                 # Mode non-streaming
                 response = self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
                     stream=False,
-                    response_format=response_format,
-                    stop=stop,
-                    **kwargs,
+                    **base_params,
                 )
                 
                 first_token_time = time.perf_counter()

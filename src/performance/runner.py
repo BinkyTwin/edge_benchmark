@@ -49,6 +49,12 @@ class BenchmarkResult:
     timestamp: str
     duration_seconds: float
     
+    # Métadonnées du modèle (format, quantization)
+    model_format: str = "unknown"           # mlx, gguf
+    model_quantization: str = "unknown"     # 4bit, Q4_K_M, etc.
+    model_config_key: str = ""              # Clé unique dans models.yaml
+    model_display_name: str = ""            # Nom d'affichage
+    
     # Métriques spécifiques au scénario
     json_valid_rate: Optional[float] = None
     
@@ -58,10 +64,18 @@ class BenchmarkResult:
     # Environnement pour reproductibilité
     environment: Optional[dict] = None
     
+    def get_filename_suffix(self) -> str:
+        """Retourne le suffixe pour les noms de fichiers (ex: MLX_4bit)."""
+        return f"{self.model_format.upper()}_{self.model_quantization}"
+    
     def to_dict(self) -> dict:
         """Convertit en dictionnaire."""
         return {
             "model_id": self.model_id,
+            "model_format": self.model_format,
+            "model_quantization": self.model_quantization,
+            "model_config_key": self.model_config_key,
+            "model_display_name": self.model_display_name,
             "scenario_name": self.scenario_name,
             "config": {
                 "warmup_runs": self.config.warmup_runs,
@@ -113,6 +127,7 @@ class PerformanceRunner:
         scenario_name: str,
         config: Optional[BenchmarkConfig] = None,
         progress_bar: bool = True,
+        model_info: Optional[dict] = None,
     ) -> BenchmarkResult:
         """
         Exécute un scénario de benchmark pour un modèle.
@@ -122,21 +137,50 @@ class PerformanceRunner:
             scenario_name: Nom du scénario à exécuter
             config: Configuration du benchmark
             progress_bar: Afficher une barre de progression
+            model_info: Métadonnées du modèle (format, quantization, etc.)
             
         Returns:
             BenchmarkResult avec métriques agrégées
         """
         config = config or BenchmarkConfig()
         scenario = self.scenario_executor.get_scenario(scenario_name)
+        model_info = model_info or {}
         
         if not scenario:
             raise ValueError(f"Unknown scenario: {scenario_name}")
         
+        # Afficher les informations du modèle
+        display_name = model_info.get("display_name", model_id)
+        model_format = model_info.get("format", "unknown").upper()
+        quantization = model_info.get("quantization", "unknown")
+        
         print(f"\n{'='*60}")
         print(f"Benchmark: {scenario.name}")
-        print(f"Model: {model_id}")
+        print(f"Model: {display_name}")
+        print(f"Format: {model_format} | Quantization: {quantization}")
         print(f"Category: {scenario.category}")
         print(f"{'='*60}")
+        
+        # Vérification préliminaire que le modèle peut répondre
+        print(f"\n[Check] Testing model availability...")
+        test_result = self.client.complete(
+            model=model_id,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=5,
+            stream=False,
+        )
+        if not test_result.success:
+            error_msg = test_result.error or "Unknown error"
+            print(f"[FATAL] Model '{model_id}' is not responding!")
+            print(f"[FATAL] Error: {error_msg}")
+            print(f"\n⚠️  Please make sure the model is LOADED in LM Studio:")
+            print(f"    1. Open LM Studio")
+            print(f"    2. Go to 'Chat' or 'Server' tab")
+            print(f"    3. Select and load model: {model_id}")
+            print(f"    4. Wait for it to finish loading (100%)")
+            print(f"    5. Re-run this benchmark")
+            raise RuntimeError(f"Model not available: {error_msg}")
+        print(f"[Check] Model is responding ✓")
         
         start_time = time.time()
         collector = MetricsCollector()
@@ -172,6 +216,11 @@ class PerformanceRunner:
                     response_format=prompt_data.get("response_format"),
                 )
                 mem_stats = mem_monitor.stop()
+            
+            # Log erreur si échec
+            if not result.success:
+                error_msg = result.error or "Unknown error"
+                tqdm.write(f"[ERROR] Run failed: {error_msg[:100]}")
             
             # Collecter les métriques
             collector.add_run(
@@ -227,6 +276,10 @@ class PerformanceRunner:
             raw_results=raw_results,
             timestamp=datetime.now().isoformat(),
             duration_seconds=duration,
+            model_format=model_info.get("format", "unknown"),
+            model_quantization=model_info.get("quantization", "unknown"),
+            model_config_key=model_info.get("config_key", ""),
+            model_display_name=model_info.get("display_name", model_id),
             json_valid_rate=json_valid_rate,
             confidence_intervals=confidence_intervals,
         )
@@ -300,14 +353,18 @@ class PerformanceRunner:
         """
         Sauvegarde un résultat en JSONL.
         
+        Le nom de fichier inclut le format (MLX/GGUF) pour distinguer les résultats.
+        Format: perf_{model}_{FORMAT}_{quantization}_{scenario}_{timestamp}.jsonl
+        
         Args:
             result: Résultat à sauvegarder
             filename: Nom du fichier (auto-généré si None)
         """
         if filename is None:
             model_name = result.model_id.replace("/", "_")
+            format_suffix = result.get_filename_suffix()  # Ex: MLX_4bit, GGUF_Q4_K_M
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"perf_{model_name}_{result.scenario_name}_{timestamp}.jsonl"
+            filename = f"perf_{model_name}_{format_suffix}_{result.scenario_name}_{timestamp}.jsonl"
         
         filepath = self.results_dir / filename
         

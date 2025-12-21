@@ -1,0 +1,29 @@
+{
+  "experiment_id": "exp_20251221_214925",
+  "task_type": "performance",
+  "planned_models": [
+    "gemma_3n_e4b_gguf"
+  ],
+  "planned_scenarios": [
+    "interactive_assistant",
+    "long_form_summarization",
+    "structured_json_output"
+  ],
+  "planned_tasks": [],
+  "completed": [
+    {
+      "model": "gemma_3n_e4b_gguf",
+      "scenario": "interactive_assistant",
+      "result_file": "perf_google_gemma-3n-e4b_GGUF_Q4_K_M_interactive_assistant.jsonl",
+      "completed_at": "2025-12-21T21:52:25.211765"
+    }
+  ],
+  "failed": [],
+  "started_at": "2025-12-21T21:49:25.696019",
+  "last_updated": "2025-12-21T21:52:25.211776",
+  "progress": {
+    "total": 3,
+    "completed": 1,
+    "failed": 0
+  }
+}
