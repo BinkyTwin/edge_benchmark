@@ -1,0 +1,18 @@
+{
+  "dataset_name": "financial_phrasebank",
+  "model_id": "qwen/qwen3-vl-4b",
+  "accuracy": 0.7351,
+  "macro_f1": 0.755,
+  "weighted_f1": 0.7358,
+  "num_samples": 970,
+  "num_correct": 713,
+  "per_class_accuracy": {
+    "neutral": 0.5979202772963604,
+    "positive": 0.927797833935018,
+    "negative": 0.9568965517241379
+  },
+  "avg_latency_ms": 208.75,
+  "total_time_seconds": 202.76,
+  "timestamp": "2025-12-22T16:53:21.324664",
+  "num_errors": 0
+}
