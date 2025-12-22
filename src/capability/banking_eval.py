@@ -175,32 +175,39 @@ class BankingEvaluator:
         seed: int = 42,
     ) -> list[dict]:
         """
-        Charge le dataset Financial PhraseBank.
+        Charge le dataset Financial PhraseBank via ChanceFocus/flare-fpb.
+        
+        Note: Le dataset original takala/financial_phrasebank utilise un script
+        legacy qui n'est plus supporté. On utilise la version ChanceFocus/flare-fpb
+        qui contient les mêmes données en format Parquet moderne.
         
         Args:
             sample_size: Nombre d'échantillons
             seed: Seed pour le sampling
             
         Returns:
-            Liste de dictionnaires avec 'sentence' et 'label'
+            Liste de dictionnaires avec 'text' et 'label'
         """
-        print(f"[FinancialPhraseBank] Loading dataset...")
+        print(f"[FinancialPhraseBank] Loading dataset (via ChanceFocus/flare-fpb)...")
+        
+        # Utiliser flare-fpb (format moderne) au lieu de takala/financial_phrasebank (script legacy)
+        # flare-fpb contient les mêmes données Financial PhraseBank
         dataset = load_dataset(
-            "takala/financial_phrasebank",
-            "sentences_allagree",  # Subset avec accord unanime
-            split="train",
+            "ChanceFocus/flare-fpb",
+            split="test",  # Utiliser le split test pour l'évaluation
             cache_dir=self.cache_dir,
-            trust_remote_code=True,  # Requis pour les dataset scripts
         )
         
-        label_map = {0: "negative", 1: "neutral", 2: "positive"}
-        
+        # flare-fpb a les champs: text, answer (positive/negative/neutral)
         samples = []
         for item in dataset:
+            label = item.get("answer", "neutral")
+            # Mapper le label en ID
+            label_id_map = {"negative": 0, "neutral": 1, "positive": 2}
             samples.append({
-                "text": item["sentence"],
-                "label": label_map[item["label"]],
-                "label_id": item["label"],
+                "text": item["text"],
+                "label": label,
+                "label_id": label_id_map.get(label, 1),
             })
         
         if sample_size and sample_size < len(samples):

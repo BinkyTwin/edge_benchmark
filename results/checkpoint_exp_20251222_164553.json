@@ -1,0 +1,20 @@
+{
+  "experiment_id": "exp_20251222_164553",
+  "task_type": "capability",
+  "planned_models": [
+    "google/gemma-3n-e4b"
+  ],
+  "planned_scenarios": [],
+  "planned_tasks": [
+    "financial_phrasebank"
+  ],
+  "completed": [],
+  "failed": [],
+  "started_at": "2025-12-22T16:45:53.443760",
+  "last_updated": "2025-12-22T16:45:53.443762",
+  "progress": {
+    "total": 1,
+    "completed": 0,
+    "failed": 0
+  }
+}

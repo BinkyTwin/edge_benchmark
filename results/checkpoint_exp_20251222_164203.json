@@ -1,0 +1,27 @@
+{
+  "experiment_id": "exp_20251222_164203",
+  "task_type": "capability",
+  "planned_models": [
+    "google/gemma-3n-e4b"
+  ],
+  "planned_scenarios": [],
+  "planned_tasks": [
+    "financial_phrasebank"
+  ],
+  "completed": [],
+  "failed": [
+    {
+      "model": "google/gemma-3n-e4b",
+      "scenario": "financial_phrasebank",
+      "error": "Dataset scripts are no longer supported, but found financial_phrasebank.py",
+      "failed_at": "2025-12-22T16:42:05.933035"
+    }
+  ],
+  "started_at": "2025-12-22T16:42:03.683022",
+  "last_updated": "2025-12-22T16:42:05.933045",
+  "progress": {
+    "total": 1,
+    "completed": 0,
+    "failed": 1
+  }
+}

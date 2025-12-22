@@ -81,17 +81,19 @@ banking_tasks:
       max_tokens: 50
       
   # Financial PhraseBank - Sentiment
+  # Note: Le dataset original takala/financial_phrasebank utilise un script legacy
+  # qui n'est plus supporté par la bibliothèque datasets. On utilise ChanceFocus/flare-fpb
+  # qui contient les mêmes données en format Parquet moderne.
   financial_phrasebank:
     name: "Financial PhraseBank Sentiment"
-    description: "Analyse de sentiment sur news financières"
-    source: "takala/financial_phrasebank"
+    description: "Analyse de sentiment sur news financières (via flare-fpb)"
+    source: "ChanceFocus/flare-fpb"
     framework: "lmstudio"
     
     dataset:
-      huggingface_id: "takala/financial_phrasebank"
-      config: "sentences_allagree"  # Subset avec accord unanime
-      split: "train"                # Pas de split test, on sample
-      sample_size: 1000             # Subset représentatif
+      huggingface_id: "ChanceFocus/flare-fpb"
+      split: "test"                 # Split test pour évaluation
+      sample_size: 970              # Taille du split test
       
     task_type: "classification"
     num_classes: 3
