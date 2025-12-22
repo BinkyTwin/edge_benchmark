@@ -5,15 +5,13 @@ Realistic Banking Scenarios
 Scénarios réalistes pour évaluer l'utilité pratique des SLMs
 dans un contexte bancaire, utilisant des datasets publics:
 
-1. Financial QA (FinQA/ConvFinQA)
-2. Financial Sentiment (Financial PhraseBank)
-3. Document Information Extraction (FinQA context)
-4. Document Summarization (Financial reports)
+1. Financial QA (FinQA via ChanceFocus/flare-finqa)
+2. Financial Sentiment (Financial PhraseBank via ChanceFocus/flare-fpb)
+3. Conversational Financial QA (ConvFinQA via ChanceFocus/flare-convfinqa)
+4. Multilingual French Financial RAG (sujet-ai/Sujet-Financial-RAG-FR-Dataset)
+5. Financial Tweet Sentiment (zeroshot/twitter-financial-news-sentiment)
 
-Datasets utilisés:
-- TheFinAI/flare-finqa: QA sur documents financiers avec calculs
-- takala/financial_phrasebank: Sentiment sur news financières
-- sujet-ai/Sujet-Financial-RAG-FR-Dataset: RAG financier FR (multilingue)
+Tous les datasets sont publics et disponibles sur Hugging Face sans restriction.
 """
 
 import json
@@ -33,54 +31,40 @@ from ..lmstudio_client import LMStudioClient, format_messages
 # === CONFIGURATION DES DATASETS ===
 
 DATASET_CONFIG = {
-    "finqa": {
-        "name": "TheFinAI/flare-finqa",
-        "description": "Financial QA with numerical reasoning",
+    "flare_finqa": {
+        "name": "ChanceFocus/flare-finqa",
+        "description": "Financial QA with numerical reasoning from SEC filings",
         "citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+        "split": "test",
     },
-    "financial_phrasebank": {
-        "name": "takala/financial_phrasebank",
-        "subset": "sentences_allagree",
-        "description": "Financial news sentiment analysis",
+    "flare_fpb": {
+        "name": "ChanceFocus/flare-fpb",
+        "description": "Financial PhraseBank - Sentiment analysis on financial news",
         "citation": "Malo et al., 2014 - Good debt or bad debt: Detecting semantic orientations in economic texts",
+        "split": "test",
+    },
+    "flare_convfinqa": {
+        "name": "ChanceFocus/flare-convfinqa",
+        "description": "Conversational Financial QA - Multi-turn dialogues",
+        "citation": "Chen et al., 2022 - ConvFinQA: Exploring the Chain of Numerical Reasoning",
+        "split": "test",
     },
     "sujet_rag_fr": {
         "name": "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
-        "description": "French financial RAG dataset",
+        "description": "French financial RAG dataset based on French company reports",
         "citation": "Sujet AI, 2024",
+        "split": "train",
     },
-    "convfinqa": {
-        "name": "TheFinAI/flare-convfinqa",
-        "description": "Conversational Financial QA",
-        "citation": "Chen et al., 2022 - ConvFinQA",
+    "twitter_financial": {
+        "name": "zeroshot/twitter-financial-news-sentiment",
+        "description": "Financial sentiment from Twitter/X posts",
+        "citation": "ZeroShot, 2023",
+        "split": "train",
     },
 }
 
 
 # === FALLBACK DATA (si datasets indisponibles) ===
-
-FALLBACK_FAQ_SAMPLES = [
-    {
-        "question": "How do I reset my online banking password?",
-        "expected_topics": ["password reset", "security", "online banking"],
-    },
-    {
-        "question": "What are the fees for international wire transfers?",
-        "expected_topics": ["fees", "international", "wire transfer"],
-    },
-    {
-        "question": "Can I deposit checks using my mobile phone?",
-        "expected_topics": ["mobile deposit", "check", "phone"],
-    },
-    {
-        "question": "How long does it take for a direct deposit to show up?",
-        "expected_topics": ["direct deposit", "timing", "availability"],
-    },
-    {
-        "question": "What happens if my debit card is stolen?",
-        "expected_topics": ["stolen card", "security", "report", "block"],
-    },
-]
 
 FALLBACK_SENTIMENT_SAMPLES = [
     {"text": "The new mobile app is amazing! So much easier to use than before.", "expected": "positive"},
@@ -88,6 +72,19 @@ FALLBACK_SENTIMENT_SAMPLES = [
     {"text": "The branch closes at 5pm on weekdays.", "expected": "neutral"},
     {"text": "Your customer service team resolved my issue quickly. Very impressed!", "expected": "positive"},
     {"text": "Hidden fees everywhere! I'm switching banks.", "expected": "negative"},
+]
+
+FALLBACK_QA_SAMPLES = [
+    {
+        "context": "Annual Report 2024: Revenue increased by 15% to $2.5 billion compared to prior year.",
+        "question": "What was the revenue growth percentage?",
+        "answer": "15%",
+    },
+    {
+        "context": "Q4 earnings show net income of $450 million, up from $380 million in Q4 2023.",
+        "question": "What was the net income increase?",
+        "answer": "$70 million",
+    },
 ]
 
 
@@ -102,25 +99,24 @@ class DatasetLoader:
         random.seed(seed)
         self._cache = {}
     
-    def load_finqa(self, split: str = "test", limit: int = 50) -> list[dict]:
+    def load_flare_finqa(self, split: str = "test", limit: int = 50) -> list[dict]:
         """
-        Charge FinQA pour les tâches de QA financier.
+        Charge FinQA via ChanceFocus/flare-finqa.
         
         Structure:
-        - context: texte du document financier + tables
-        - question: question posée
+        - query: question complète avec contexte
         - answer: réponse attendue
+        - text: question seule
         """
-        cache_key = f"finqa_{split}_{limit}"
+        cache_key = f"flare_finqa_{split}_{limit}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         
         try:
-            print(f"[DatasetLoader] Loading FinQA ({split}, limit={limit})...")
+            print(f"[DatasetLoader] Loading flare-finqa ({split}, limit={limit})...")
             dataset = load_dataset(
-                "TheFinAI/flare-finqa",
+                "ChanceFocus/flare-finqa",
                 split=split,
-                trust_remote_code=True,
             )
             
             samples = []
@@ -129,16 +125,24 @@ class DatasetLoader:
             
             for idx in indices[:limit]:
                 item = dataset[idx]
-                # Construire le contexte à partir des données disponibles
-                context = item.get("context", "") or item.get("text", "")
-                if not context and "table" in item:
-                    context = str(item["table"])
+                
+                # Extraire le contexte de la query (avant "Context:")
+                query = item.get("query", "")
+                context = ""
+                if "Context:" in query:
+                    parts = query.split("Context:")
+                    if len(parts) > 1:
+                        context = parts[1].strip()
+                        # Trouver où commence la question
+                        if "\n" in context:
+                            context = context[:context.rfind("\n")]
                 
                 samples.append({
-                    "context": context[:4000],  # Limiter la taille du contexte
-                    "question": item.get("question", ""),
+                    "context": context[:4000],
+                    "question": item.get("text", ""),
                     "answer": str(item.get("answer", "")),
-                    "source": "finqa",
+                    "source": "flare_finqa",
+                    "id": item.get("id", str(idx)),
                 })
             
             print(f"[DatasetLoader] Loaded {len(samples)} FinQA samples")
@@ -146,28 +150,28 @@ class DatasetLoader:
             return samples
             
         except Exception as e:
-            print(f"[DatasetLoader] Warning: Could not load FinQA: {e}")
-            return self._generate_fallback_qa(limit)
+            print(f"[DatasetLoader] Warning: Could not load flare-finqa: {e}")
+            return FALLBACK_QA_SAMPLES[:limit]
     
-    def load_convfinqa(self, split: str = "test", limit: int = 30) -> list[dict]:
+    def load_flare_convfinqa(self, split: str = "test", limit: int = 30) -> list[dict]:
         """
-        Charge ConvFinQA pour les dialogues multi-tours.
+        Charge ConvFinQA via ChanceFocus/flare-convfinqa.
         
         Structure:
-        - context: document financier
-        - questions: liste de questions (dialogue)
-        - answers: liste de réponses
+        - query: question avec contexte
+        - answer: réponse
+        - turn: numéro du tour de dialogue
+        - dialogue_id: id du dialogue
         """
-        cache_key = f"convfinqa_{split}_{limit}"
+        cache_key = f"flare_convfinqa_{split}_{limit}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         
         try:
-            print(f"[DatasetLoader] Loading ConvFinQA ({split}, limit={limit})...")
+            print(f"[DatasetLoader] Loading flare-convfinqa ({split}, limit={limit})...")
             dataset = load_dataset(
-                "TheFinAI/flare-convfinqa",
+                "ChanceFocus/flare-convfinqa",
                 split=split,
-                trust_remote_code=True,
             )
             
             samples = []
@@ -176,12 +180,20 @@ class DatasetLoader:
             
             for idx in indices[:limit]:
                 item = dataset[idx]
+                
+                query = item.get("query", "")
+                context = ""
+                if "Context:" in query or "context:" in query.lower():
+                    # Extraire le contexte
+                    context = query
+                
                 samples.append({
-                    "context": item.get("context", "")[:3000],
-                    "question": item.get("question", ""),
+                    "context": context[:3500],
+                    "question": query[-500:] if len(query) > 500 else query,  # Dernière partie = question
                     "answer": str(item.get("answer", "")),
-                    "dialogue_id": item.get("id", idx),
-                    "source": "convfinqa",
+                    "turn": item.get("turn", 0),
+                    "dialogue_id": item.get("dialogue_id", idx),
+                    "source": "flare_convfinqa",
                 })
             
             print(f"[DatasetLoader] Loaded {len(samples)} ConvFinQA samples")
@@ -189,31 +201,28 @@ class DatasetLoader:
             return samples
             
         except Exception as e:
-            print(f"[DatasetLoader] Warning: Could not load ConvFinQA: {e}")
-            return self._generate_fallback_qa(limit)
+            print(f"[DatasetLoader] Warning: Could not load flare-convfinqa: {e}")
+            return FALLBACK_QA_SAMPLES[:limit]
     
-    def load_financial_phrasebank(self, limit: int = 100) -> list[dict]:
+    def load_flare_fpb(self, split: str = "test", limit: int = 100) -> list[dict]:
         """
-        Charge Financial PhraseBank pour l'analyse de sentiment.
+        Charge Financial PhraseBank via ChanceFocus/flare-fpb.
         
         Structure:
-        - sentence: phrase financière
-        - label: 0 (negative), 1 (neutral), 2 (positive)
+        - text: phrase financière
+        - answer: sentiment (positive, negative, neutral)
+        - choices: liste des choix possibles
         """
-        cache_key = f"phrasebank_{limit}"
+        cache_key = f"flare_fpb_{split}_{limit}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         
         try:
-            print(f"[DatasetLoader] Loading Financial PhraseBank (limit={limit})...")
+            print(f"[DatasetLoader] Loading flare-fpb ({split}, limit={limit})...")
             dataset = load_dataset(
-                "takala/financial_phrasebank",
-                "sentences_allagree",
-                split="train",
-                trust_remote_code=True,
+                "ChanceFocus/flare-fpb",
+                split=split,
             )
-            
-            label_map = {0: "negative", 1: "neutral", 2: "positive"}
             
             samples = []
             indices = list(range(len(dataset)))
@@ -222,35 +231,77 @@ class DatasetLoader:
             for idx in indices[:limit]:
                 item = dataset[idx]
                 samples.append({
-                    "text": item["sentence"],
-                    "expected": label_map.get(item["label"], "neutral"),
-                    "source": "financial_phrasebank",
+                    "text": item.get("text", ""),
+                    "expected": item.get("answer", "neutral"),
+                    "source": "flare_fpb",
                 })
             
-            print(f"[DatasetLoader] Loaded {len(samples)} sentiment samples")
+            print(f"[DatasetLoader] Loaded {len(samples)} FPB sentiment samples")
             self._cache[cache_key] = samples
             return samples
             
         except Exception as e:
-            print(f"[DatasetLoader] Warning: Could not load Financial PhraseBank: {e}")
-            return FALLBACK_SENTIMENT_SAMPLES
+            print(f"[DatasetLoader] Warning: Could not load flare-fpb: {e}")
+            return FALLBACK_SENTIMENT_SAMPLES[:limit]
     
-    def load_sujet_rag_fr(self, limit: int = 30) -> list[dict]:
+    def load_twitter_financial(self, split: str = "train", limit: int = 100) -> list[dict]:
         """
-        Charge le dataset Sujet Financial RAG FR.
+        Charge Twitter Financial Sentiment.
         
-        Pour tester la capacité multilingue (français).
+        Structure:
+        - text: tweet
+        - label: 0 (bearish/negative), 1 (bullish/positive), 2 (neutral)
         """
-        cache_key = f"sujet_fr_{limit}"
+        cache_key = f"twitter_financial_{split}_{limit}"
         if cache_key in self._cache:
             return self._cache[cache_key]
         
         try:
-            print(f"[DatasetLoader] Loading Sujet Financial RAG FR (limit={limit})...")
+            print(f"[DatasetLoader] Loading twitter-financial ({split}, limit={limit})...")
+            dataset = load_dataset(
+                "zeroshot/twitter-financial-news-sentiment",
+                split=split,
+            )
+            
+            label_map = {0: "negative", 1: "positive", 2: "neutral"}
+            
+            samples = []
+            indices = list(range(len(dataset)))
+            random.shuffle(indices)
+            
+            for idx in indices[:limit]:
+                item = dataset[idx]
+                samples.append({
+                    "text": item.get("text", ""),
+                    "expected": label_map.get(item.get("label", 2), "neutral"),
+                    "source": "twitter_financial",
+                })
+            
+            print(f"[DatasetLoader] Loaded {len(samples)} Twitter sentiment samples")
+            self._cache[cache_key] = samples
+            return samples
+            
+        except Exception as e:
+            print(f"[DatasetLoader] Warning: Could not load twitter-financial: {e}")
+            return FALLBACK_SENTIMENT_SAMPLES[:limit]
+    
+    def load_sujet_rag_fr(self, split: str = "train", limit: int = 30) -> list[dict]:
+        """
+        Charge le dataset Sujet Financial RAG FR.
+        
+        Structure:
+        - question: question en français
+        - context: contexte du rapport financier
+        """
+        cache_key = f"sujet_fr_{split}_{limit}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+        
+        try:
+            print(f"[DatasetLoader] Loading Sujet Financial RAG FR ({split}, limit={limit})...")
             dataset = load_dataset(
                 "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
-                split="train",
-                trust_remote_code=True,
+                split=split,
             )
             
             samples = []
@@ -260,9 +311,9 @@ class DatasetLoader:
             for idx in indices[:limit]:
                 item = dataset[idx]
                 samples.append({
-                    "context": item.get("context", "")[:3000],
+                    "context": item.get("context", "")[:3500],
                     "question": item.get("question", ""),
-                    "answer": item.get("answer", ""),
+                    "answer": "",  # Pas de réponse gold dans ce dataset
                     "source": "sujet_rag_fr",
                     "language": "fr",
                 })
@@ -274,17 +325,6 @@ class DatasetLoader:
         except Exception as e:
             print(f"[DatasetLoader] Warning: Could not load Sujet RAG FR: {e}")
             return []
-    
-    def _generate_fallback_qa(self, limit: int) -> list[dict]:
-        """Génère des échantillons fallback pour QA."""
-        return [
-            {
-                "context": "Annual Report 2024: Revenue increased by 15% to $2.5 billion.",
-                "question": "What was the revenue growth?",
-                "answer": "15%",
-                "source": "fallback",
-            }
-        ] * min(limit, 5)
 
 
 @dataclass
@@ -355,18 +395,19 @@ class RealisticScenariosEvaluator:
         Métriques:
         - Exact Match (EM)
         - F1 Score (token overlap)
-        - Answer relevance
+        - Answer presence (réponse dans le texte généré)
         """
-        samples = self.loader.load_finqa(limit=num_samples)
+        samples = self.loader.load_flare_finqa(limit=num_samples)
         
         system_prompt = """You are a financial analyst assistant. 
 Answer questions about financial documents accurately and concisely.
 If the answer requires calculation, show your work briefly.
-Provide only the final answer when possible."""
+Provide the final answer clearly."""
         
         responses = []
         latencies = []
         exact_matches = 0
+        answer_present = 0
         f1_scores = []
         
         start_time = time.time()
@@ -377,12 +418,15 @@ Provide only the final answer when possible."""
             question = sample.get("question", "")
             expected = sample.get("answer", "")
             
-            prompt = f"""Context:
+            if context:
+                prompt = f"""Context:
 {context}
 
 Question: {question}
 
 Answer:"""
+            else:
+                prompt = f"Question: {question}\n\nAnswer:"
             
             messages = format_messages(prompt, system_prompt)
             
@@ -399,17 +443,21 @@ Answer:"""
             # Calcul des métriques
             predicted = result.content.strip() if result.content else ""
             is_exact = self._normalize_answer(predicted) == self._normalize_answer(expected)
+            is_present = expected.lower() in predicted.lower() if expected else False
             f1 = self._compute_f1(predicted, expected)
             
             if is_exact:
                 exact_matches += 1
+            if is_present:
+                answer_present += 1
             f1_scores.append(f1)
             
             responses.append({
                 "question": question,
                 "expected": expected,
-                "predicted": predicted,
+                "predicted": predicted[:200],  # Truncate for storage
                 "exact_match": is_exact,
+                "answer_present": is_present,
                 "f1": f1,
                 "latency_ms": result.metrics.total_time_ms,
                 "success": result.success,
@@ -423,13 +471,14 @@ Answer:"""
             num_samples=len(samples),
             metrics={
                 "exact_match": exact_matches / len(samples) if samples else 0,
+                "answer_present": answer_present / len(samples) if samples else 0,
                 "f1_score": sum(f1_scores) / len(f1_scores) if f1_scores else 0,
                 "success_rate": sum(1 for r in responses if r["success"]) / len(responses) if responses else 0,
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
             total_time_seconds=total_time,
-            dataset_source=DATASET_CONFIG["finqa"]["name"],
-            dataset_citation=DATASET_CONFIG["finqa"]["citation"],
+            dataset_source=DATASET_CONFIG["flare_finqa"]["name"],
+            dataset_citation=DATASET_CONFIG["flare_finqa"]["citation"],
             responses=responses,
             timestamp=datetime.now().isoformat(),
         )
@@ -438,19 +487,25 @@ Answer:"""
         self,
         model_id: str,
         num_samples: int = 100,
+        use_twitter: bool = False,
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue sur Financial PhraseBank - Analyse de sentiment financier.
+        Évalue sur Financial PhraseBank ou Twitter Financial Sentiment.
         
         Métriques:
         - Accuracy
         - Macro F1
-        - Per-class precision/recall
+        - Per-class breakdown
         """
-        samples = self.loader.load_financial_phrasebank(limit=num_samples)
+        if use_twitter:
+            samples = self.loader.load_twitter_financial(limit=num_samples)
+            dataset_key = "twitter_financial"
+        else:
+            samples = self.loader.load_flare_fpb(limit=num_samples)
+            dataset_key = "flare_fpb"
         
-        system_prompt = """Analyze the sentiment of financial news statements.
+        system_prompt = """Analyze the sentiment of financial statements.
 Respond with exactly one word: positive, negative, or neutral."""
         
         predictions = []
@@ -492,11 +547,11 @@ Respond with exactly one word: positive, negative, or neutral."""
             confusion[expected][pred] = confusion[expected].get(pred, 0) + 1
             
             predictions.append({
-                "text": text,
+                "text": text[:100],  # Truncate
                 "expected": expected,
                 "predicted": pred,
                 "correct": pred == expected,
-                "raw_response": result.content,
+                "raw_response": result.content[:50] if result.content else "",
             })
         
         total_time = time.time() - start_time
@@ -528,13 +583,101 @@ Respond with exactly one word: positive, negative, or neutral."""
                 "macro_f1": macro_f1,
                 "correct": correct,
                 "total": len(samples),
-                "confusion_matrix": confusion,
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
             total_time_seconds=total_time,
-            dataset_source=DATASET_CONFIG["financial_phrasebank"]["name"],
-            dataset_citation=DATASET_CONFIG["financial_phrasebank"]["citation"],
+            dataset_source=DATASET_CONFIG[dataset_key]["name"],
+            dataset_citation=DATASET_CONFIG[dataset_key]["citation"],
             responses=predictions,
+            timestamp=datetime.now().isoformat(),
+        )
+    
+    def evaluate_conversational_qa(
+        self,
+        model_id: str,
+        num_samples: int = 30,
+        progress_bar: bool = True,
+    ) -> ScenarioResult:
+        """
+        Évalue sur ConvFinQA - QA conversationnel financier multi-tours.
+        
+        Métriques:
+        - Answer presence
+        - Numerical accuracy (si réponse numérique)
+        """
+        samples = self.loader.load_flare_convfinqa(limit=num_samples)
+        
+        system_prompt = """You are a financial analyst assistant engaged in a conversation.
+Answer financial questions based on the provided context.
+Be precise and concise. For numerical questions, provide the exact number."""
+        
+        responses = []
+        latencies = []
+        answer_present = 0
+        
+        start_time = time.time()
+        iterator = tqdm(samples, desc="Conversational QA") if progress_bar else samples
+        
+        for sample in iterator:
+            context = sample.get("context", "")
+            question = sample.get("question", "")
+            expected = sample.get("answer", "")
+            
+            # Utiliser le contexte complet de la query
+            prompt = f"""{context}
+
+Please provide the answer:"""
+            
+            messages = format_messages(prompt, system_prompt)
+            
+            result = self.client.complete(
+                model=model_id,
+                messages=messages,
+                temperature=0,
+                max_tokens=100,
+                stream=True,
+            )
+            
+            latencies.append(result.metrics.total_time_ms)
+            
+            predicted = result.content.strip() if result.content else ""
+            
+            # Vérifier si la réponse attendue est présente
+            is_present = False
+            if expected and predicted:
+                # Normaliser pour comparaison
+                exp_norm = str(expected).lower().replace(",", "").replace(" ", "")
+                pred_norm = predicted.lower().replace(",", "").replace(" ", "")
+                is_present = exp_norm in pred_norm
+            
+            if is_present:
+                answer_present += 1
+            
+            responses.append({
+                "question": question[:150] if question else context[:150],
+                "expected": str(expected),
+                "predicted": predicted[:150],
+                "answer_present": is_present,
+                "turn": sample.get("turn", 0),
+                "latency_ms": result.metrics.total_time_ms,
+                "success": result.success,
+            })
+        
+        total_time = time.time() - start_time
+        
+        return ScenarioResult(
+            scenario_name="conversational_qa",
+            model_id=model_id,
+            num_samples=len(samples),
+            metrics={
+                "answer_present": answer_present / len(samples) if samples else 0,
+                "success_rate": sum(1 for r in responses if r["success"]) / len(responses) if responses else 0,
+            },
+            avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
+            total_time_seconds=total_time,
+            dataset_source=DATASET_CONFIG["flare_convfinqa"]["name"],
+            dataset_citation=DATASET_CONFIG["flare_convfinqa"]["citation"],
+            responses=responses,
             timestamp=datetime.now().isoformat(),
         )
     
@@ -551,24 +694,13 @@ Respond with exactly one word: positive, negative, or neutral."""
         
         Métriques:
         - JSON validity rate
-        - Field extraction accuracy
-        - Numerical accuracy
+        - Field extraction count
         """
-        samples = self.loader.load_finqa(limit=num_samples)
+        samples = self.loader.load_flare_finqa(limit=num_samples)
         
         system_prompt = """You are a financial document parser.
 Extract key information from the document and return it as valid JSON.
 Always respond with properly formatted JSON, nothing else."""
-        
-        extraction_schema = {
-            "type": "object",
-            "properties": {
-                "document_type": {"type": "string", "description": "Type of financial document"},
-                "key_figures": {"type": "array", "items": {"type": "object"}},
-                "time_period": {"type": "string"},
-                "entities_mentioned": {"type": "array", "items": {"type": "string"}},
-            }
-        }
         
         results = []
         latencies = []
@@ -580,15 +712,18 @@ Always respond with properly formatted JSON, nothing else."""
         for sample in iterator:
             context = sample.get("context", "")[:2500]
             
+            if not context:
+                continue
+            
             prompt = f"""Extract structured information from this financial document:
 
 {context}
 
 Return a JSON object with:
-- document_type: type of document (earnings report, annual report, etc.)
-- key_figures: array of numerical metrics found
-- time_period: fiscal period mentioned
-- entities_mentioned: companies or organizations mentioned
+- document_type: type of document (earnings, 10-K, etc.)
+- key_figures: array of numbers found with their labels
+- time_period: fiscal period if mentioned
+- entities: companies or organizations mentioned
 
 JSON:"""
             
@@ -608,15 +743,14 @@ JSON:"""
             extraction_result = {
                 "success": result.success,
                 "json_valid": result.json_valid,
-                "parsed": result.parsed_json,
-                "raw_response": result.content[:500] if result.content else "",
+                "parsed": result.parsed_json if result.json_valid else None,
             }
             
             if result.json_valid and result.parsed_json:
                 valid_json_count += 1
                 
-                # Vérifier les champs extraits
-                expected_fields = ["document_type", "key_figures", "time_period", "entities_mentioned"]
+                # Compter les champs extraits
+                expected_fields = ["document_type", "key_figures", "time_period", "entities"]
                 fields_present = sum(1 for f in expected_fields if f in result.parsed_json)
                 extraction_result["fields_present"] = fields_present
                 extraction_result["fields_expected"] = len(expected_fields)
@@ -631,118 +765,16 @@ JSON:"""
         return ScenarioResult(
             scenario_name="info_extraction",
             model_id=model_id,
-            num_samples=len(samples),
+            num_samples=len(results),
             metrics={
-                "json_valid_rate": valid_json_count / len(samples) if samples else 0,
+                "json_valid_rate": valid_json_count / len(results) if results else 0,
                 "valid_json_count": valid_json_count,
                 "avg_fields_extracted": avg_fields,
-                "total_samples": len(samples),
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
             total_time_seconds=total_time,
-            dataset_source=DATASET_CONFIG["finqa"]["name"],
-            dataset_citation=DATASET_CONFIG["finqa"]["citation"],
-            responses=results,
-            timestamp=datetime.now().isoformat(),
-        )
-    
-    def evaluate_document_summary(
-        self,
-        model_id: str,
-        num_samples: int = 20,
-        progress_bar: bool = True,
-    ) -> ScenarioResult:
-        """
-        Évalue la capacité de résumé de documents financiers.
-        
-        Utilise les contextes de FinQA comme documents sources.
-        
-        Métriques:
-        - Summary quality (length, coherence proxy)
-        - Key information retention
-        - Compression ratio
-        """
-        samples = self.loader.load_finqa(limit=num_samples)
-        
-        system_prompt = """You are a financial document summarization assistant.
-Create clear, accurate summaries that capture key financial information.
-Focus on the most important figures, trends, and insights."""
-        
-        results = []
-        latencies = []
-        
-        start_time = time.time()
-        iterator = tqdm(samples, desc="Document Summary") if progress_bar else samples
-        
-        for sample in iterator:
-            context = sample.get("context", "")[:3500]
-            
-            prompt = f"""Summarize this financial document in 2-3 concise paragraphs:
-
-{context}
-
-Summary:"""
-            
-            messages = format_messages(prompt, system_prompt)
-            
-            result = self.client.complete(
-                model=model_id,
-                messages=messages,
-                temperature=0,
-                max_tokens=350,
-                stream=True,
-            )
-            
-            latencies.append(result.metrics.total_time_ms)
-            
-            summary = result.content if result.content else ""
-            
-            # Métriques de qualité
-            summary_result = {
-                "success": result.success,
-                "summary": summary,
-                "summary_length": len(summary),
-                "context_length": len(context),
-                "compression_ratio": len(summary) / len(context) if context else 0,
-            }
-            
-            # Vérifier si des chiffres clés sont mentionnés
-            if result.success and summary:
-                # Extraire les nombres du contexte et vérifier leur présence
-                import re
-                context_numbers = set(re.findall(r'\b\d+(?:\.\d+)?(?:%|million|billion)?\b', context.lower()))
-                summary_numbers = set(re.findall(r'\b\d+(?:\.\d+)?(?:%|million|billion)?\b', summary.lower()))
-                
-                if context_numbers:
-                    retention_rate = len(context_numbers & summary_numbers) / len(context_numbers)
-                else:
-                    retention_rate = 1.0  # Pas de nombres à retenir
-                
-                summary_result["number_retention_rate"] = retention_rate
-            
-            results.append(summary_result)
-        
-        total_time = time.time() - start_time
-        
-        # Métriques agrégées
-        avg_compression = sum(r.get("compression_ratio", 0) for r in results) / len(results) if results else 0
-        avg_retention = sum(r.get("number_retention_rate", 0) for r in results) / len(results) if results else 0
-        avg_length = sum(r.get("summary_length", 0) for r in results) / len(results) if results else 0
-        
-        return ScenarioResult(
-            scenario_name="document_summary",
-            model_id=model_id,
-            num_samples=len(samples),
-            metrics={
-                "avg_compression_ratio": avg_compression,
-                "number_retention_rate": avg_retention,
-                "avg_summary_length": avg_length,
-                "success_rate": sum(1 for r in results if r["success"]) / len(results) if results else 0,
-            },
-            avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
-            total_time_seconds=total_time,
-            dataset_source=DATASET_CONFIG["finqa"]["name"],
-            dataset_citation=DATASET_CONFIG["finqa"]["citation"],
+            dataset_source=DATASET_CONFIG["flare_finqa"]["name"],
+            dataset_citation=DATASET_CONFIG["flare_finqa"]["citation"],
             responses=results,
             timestamp=datetime.now().isoformat(),
         )
@@ -757,7 +789,7 @@ Summary:"""
         Évalue la capacité multilingue sur le dataset français Sujet Financial RAG.
         
         Métriques:
-        - Answer quality (F1)
+        - Response quality (length, coherence)
         - Language consistency (réponse en français)
         """
         samples = self.loader.load_sujet_rag_fr(limit=num_samples)
@@ -772,14 +804,13 @@ Summary:"""
                 timestamp=datetime.now().isoformat(),
             )
         
-        system_prompt = """Vous êtes un assistant financier. 
+        system_prompt = """Vous êtes un assistant financier expert. 
 Répondez aux questions sur les documents financiers de manière précise et concise.
 Répondez toujours en français."""
         
         responses = []
         latencies = []
         french_responses = 0
-        f1_scores = []
         
         start_time = time.time()
         iterator = tqdm(samples, desc="Multilingual FR") if progress_bar else samples
@@ -787,7 +818,6 @@ Répondez toujours en français."""
         for sample in iterator:
             context = sample.get("context", "")
             question = sample.get("question", "")
-            expected = sample.get("answer", "")
             
             prompt = f"""Contexte:
 {context}
@@ -815,29 +845,27 @@ Réponse:"""
             if is_french:
                 french_responses += 1
             
-            # F1 score
-            f1 = self._compute_f1(predicted, expected)
-            f1_scores.append(f1)
-            
             responses.append({
                 "question": question,
-                "expected": expected,
-                "predicted": predicted,
+                "predicted": predicted[:200],
                 "is_french": is_french,
-                "f1": f1,
+                "response_length": len(predicted),
                 "latency_ms": result.metrics.total_time_ms,
+                "success": result.success,
             })
         
         total_time = time.time() - start_time
+        
+        avg_length = sum(r["response_length"] for r in responses) / len(responses) if responses else 0
         
         return ScenarioResult(
             scenario_name="multilingual_fr",
             model_id=model_id,
             num_samples=len(samples),
             metrics={
-                "f1_score": sum(f1_scores) / len(f1_scores) if f1_scores else 0,
                 "french_response_rate": french_responses / len(samples) if samples else 0,
-                "success_rate": sum(1 for r in responses if r.get("f1", 0) > 0) / len(responses) if responses else 0,
+                "avg_response_length": avg_length,
+                "success_rate": sum(1 for r in responses if r["success"]) / len(responses) if responses else 0,
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
             total_time_seconds=total_time,
@@ -851,36 +879,56 @@ Réponse:"""
         self,
         model_id: str,
         include_multilingual: bool = True,
+        include_conversational: bool = True,
     ) -> dict[str, ScenarioResult]:
         """
         Exécute tous les scénarios réalistes.
+        
+        Args:
+            model_id: ID du modèle LM Studio
+            include_multilingual: Inclure le test français
+            include_conversational: Inclure ConvFinQA
         """
         results = {}
+        total_scenarios = 4 + int(include_multilingual) + int(include_conversational)
+        current = 0
         
         print(f"\n{'='*60}")
         print(f"REALISTIC BANKING SCENARIOS (Public Datasets)")
         print(f"Model: {model_id}")
+        print(f"Scenarios: {total_scenarios}")
         print(f"{'='*60}")
         
         # Financial QA
-        print("\n[1/5] Financial QA (FinQA)")
+        current += 1
+        print(f"\n[{current}/{total_scenarios}] Financial QA (FinQA)")
         results["financial_qa"] = self.evaluate_financial_qa(model_id)
         
         # Sentiment Analysis
-        print("\n[2/5] Financial Sentiment (Financial PhraseBank)")
+        current += 1
+        print(f"\n[{current}/{total_scenarios}] Financial Sentiment (Financial PhraseBank)")
         results["sentiment"] = self.evaluate_sentiment_analysis(model_id)
         
+        # Conversational QA (optional)
+        if include_conversational:
+            current += 1
+            print(f"\n[{current}/{total_scenarios}] Conversational QA (ConvFinQA)")
+            results["conversational"] = self.evaluate_conversational_qa(model_id)
+        
         # Information Extraction
-        print("\n[3/5] Information Extraction")
+        current += 1
+        print(f"\n[{current}/{total_scenarios}] Information Extraction (JSON)")
         results["extraction"] = self.evaluate_info_extraction(model_id)
         
-        # Document Summary
-        print("\n[4/5] Document Summarization")
-        results["summary"] = self.evaluate_document_summary(model_id)
+        # Twitter Sentiment (alternative)
+        current += 1
+        print(f"\n[{current}/{total_scenarios}] Twitter Financial Sentiment")
+        results["twitter_sentiment"] = self.evaluate_sentiment_analysis(model_id, use_twitter=True, num_samples=50)
         
         # Multilingual (optional)
         if include_multilingual:
-            print("\n[5/5] Multilingual French (Sujet RAG FR)")
+            current += 1
+            print(f"\n[{current}/{total_scenarios}] Multilingual French (Sujet RAG FR)")
             results["multilingual_fr"] = self.evaluate_multilingual_fr(model_id)
         
         # Résumé
@@ -895,10 +943,8 @@ Réponse:"""
         """Normalise une réponse pour la comparaison."""
         if not answer:
             return ""
-        # Nettoyer et normaliser
         answer = answer.lower().strip()
-        # Retirer la ponctuation
-        answer = ''.join(c for c in answer if c.isalnum() or c.isspace())
+        answer = ''.join(c for c in answer if c.isalnum() or c.isspace() or c == '.')
         return answer
     
     def _compute_f1(self, pred: str, gold: str) -> float:
@@ -931,6 +977,7 @@ Réponse:"""
             "de ", "du ", "en ", "est ", "sont ", "pour ",
             "avec ", "dans ", "sur ", "par ", "que ", "qui ",
             "ce ", "cette ", "ces ", "aux ", "était ", "été ",
+            "chiffre", "exercice", "groupe", "résultat", "millions",
         ]
         
         text_lower = text.lower()
@@ -949,10 +996,10 @@ Réponse:"""
             print(f"  Dataset: {result.dataset_source or 'N/A'}")
             print(f"  Samples: {result.num_samples}")
             for key, value in result.metrics.items():
-                if key == "confusion_matrix":
-                    continue  # Skip detailed confusion matrix in summary
+                if key in ["confusion_matrix", "error"]:
+                    continue
                 if isinstance(value, float):
-                    if value <= 1:
+                    if 0 <= value <= 1:
                         print(f"  {key}: {value:.2%}")
                     else:
                         print(f"  {key}: {value:.2f}")
