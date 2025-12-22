@@ -1,0 +1,12 @@
+{
+  "model_id": "google/gemma-3n-e4b",
+  "dataset_name": "humaneval_mini",
+  "pass_at_1": 0.2561,
+  "syntax_valid_rate": 0.8293,
+  "num_samples": 164,
+  "num_passed": 42,
+  "num_syntax_valid": 136,
+  "avg_latency_ms": 6029.46,
+  "total_time_seconds": 989.09,
+  "timestamp": "2025-12-22T16:45:55.888940"
+}
