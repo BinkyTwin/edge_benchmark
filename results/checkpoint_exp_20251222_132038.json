@@ -1,0 +1,20 @@
+{
+  "experiment_id": "exp_20251222_132038",
+  "task_type": "capability",
+  "planned_models": [
+    "google/gemma-3n-e4b"
+  ],
+  "planned_scenarios": [],
+  "planned_tasks": [
+    "banking77"
+  ],
+  "completed": [],
+  "failed": [],
+  "started_at": "2025-12-22T13:20:38.273616",
+  "last_updated": "2025-12-22T13:20:38.273618",
+  "progress": {
+    "total": 1,
+    "completed": 0,
+    "failed": 0
+  }
+}

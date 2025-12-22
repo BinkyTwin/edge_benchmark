@@ -146,8 +146,10 @@ class BankingEvaluator:
             Liste de dictionnaires avec 'text' et 'label'
         """
         print(f"[Banking77] Loading {split} split...")
+        # Utiliser mteb/banking77 (format Parquet, pas de script requis)
+        # Source: https://huggingface.co/datasets/mteb/banking77
         dataset = load_dataset(
-            "PolyAI/banking77",
+            "mteb/banking77",
             split=split,
             cache_dir=self.cache_dir,
         )
@@ -188,6 +190,7 @@ class BankingEvaluator:
             "sentences_allagree",  # Subset avec accord unanime
             split="train",
             cache_dir=self.cache_dir,
+            trust_remote_code=True,  # Requis pour les dataset scripts
         )
         
         label_map = {0: "negative", 1: "neutral", 2: "positive"}

@@ -37,7 +37,7 @@ env/
 .ipynb_checkpoints/
 
 # Results (large files, regeneratable)
-results/*.jsonl
+#results/*.jsonl
 results/*.csv
 results/harness_output/
 
