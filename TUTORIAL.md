@@ -354,6 +354,11 @@ python scripts/run_capability.py \
     --task coding \
     --model google/gemma-3n-e4b \
     --sample-size 30
+
+python scripts/run_capability.py \
+    --task coding \
+    --model mistralai/ministral-3-3b \
+    --sample-size 200
 ```
 
 **Temps estimé :** 10-15 minutes par modèle

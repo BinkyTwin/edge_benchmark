@@ -1,0 +1,18 @@
+{
+  "dataset_name": "financial_phrasebank",
+  "model_id": "mistralai/ministral-3-3b",
+  "accuracy": 0.7268,
+  "macro_f1": 0.7256,
+  "weighted_f1": 0.7303,
+  "num_samples": 970,
+  "num_correct": 705,
+  "per_class_accuracy": {
+    "positive": 0.7292418772563177,
+    "negative": 0.9827586206896551,
+    "neutral": 0.6741767764298093
+  },
+  "avg_latency_ms": 189.42,
+  "total_time_seconds": 184.11,
+  "timestamp": "2025-12-22T16:56:01.097505",
+  "num_errors": 0
+}
