@@ -345,10 +345,6 @@ python scripts/run_capability.py \
     --sample-size 1000
 ```
 
-python scripts/run_capability.py \
-    --task financial_phrasebank \
-    --model qwen/qwen3-vl-4b \
-
 **Temps estimé :** 15-25 minutes par modèle
 
 ### Étape 4.3 : Test de codage (optionnel mais recommandé)
@@ -364,10 +360,6 @@ python scripts/run_capability.py \
     --model mistralai/ministral-3-3b \
     --sample-size 200
 ```
-python scripts/run_capability.py \
-    --task coding \
-    --model qwen/qwen3-vl-4b \
-    --sample-size 200
 
 **Temps estimé :** 10-15 minutes par modèle
 
@@ -376,8 +368,15 @@ python scripts/run_capability.py \
 ```bash
 python scripts/run_capability.py \
     --task realistic \
-    --model google/gemma-3n-e4b
+    --model mistralai/ministral-3-3b
 ```
+python scripts/run_capability.py \
+    --task realistic \
+    --model google/gemma-3n-e4b
+
+python scripts/run_capability.py \
+    --task realistic \
+    --model qwen/qwen3-vl-4b
 
 ### Vérifier les résultats
 
