@@ -2,8 +2,8 @@
 Realistic Banking Scenarios
 ===========================
 
-Scénarios réalistes pour évaluer l'utilité pratique des SLMs
-dans un contexte bancaire, utilisant des datasets publics:
+Realistic scenarios to evaluate the practical utility of SLMs
+in a banking context, using public datasets:
 
 1. Financial QA (FinQA via ChanceFocus/flare-finqa)
 2. Financial Sentiment (Financial PhraseBank via ChanceFocus/flare-fpb)
@@ -11,13 +11,13 @@ dans un contexte bancaire, utilisant des datasets publics:
 4. Multilingual French Financial RAG (sujet-ai/Sujet-Financial-RAG-FR-Dataset)
 5. Financial Tweet Sentiment (zeroshot/twitter-financial-news-sentiment)
 
-Tous les datasets sont publics et disponibles sur Hugging Face sans restriction.
+All datasets are public and available on Hugging Face without restrictions.
 
-Métriques rigoureuses:
-- Exact match strict avec normalisation
-- Numerical accuracy avec tolérance ±1%
-- Bootstrap CI 95% sur toutes les métriques
-- Documentation des limites méthodologiques
+Rigorous metrics:
+- Strict exact match with normalization
+- Numerical accuracy with ±1% tolerance
+- Bootstrap 95% CI on all metrics
+- Documentation of methodological limitations
 """
 
 import json
@@ -36,7 +36,7 @@ from tqdm import tqdm
 from ..lmstudio_client import LMStudioClient, format_messages
 
 
-# === CONFIGURATION DES DATASETS ===
+# === DATASET CONFIGURATION ===
 
 DATASET_CONFIG = {
     "flare_finqa": {
@@ -72,7 +72,7 @@ DATASET_CONFIG = {
 }
 
 
-# === SAMPLE SIZE RATIONALE (pour papier arXiv) ===
+# === SAMPLE SIZE RATIONALE ===
 
 SAMPLE_SIZE_RATIONALE = {
     "financial_qa": {
@@ -118,7 +118,7 @@ SAMPLE_SIZE_RATIONALE = {
 }
 
 
-# === FALLBACK DATA (si datasets indisponibles) ===
+# === FALLBACK DATA (if datasets unavailable) ===
 
 FALLBACK_SENTIMENT_SAMPLES = [
     {"text": "The new mobile app is amazing! So much easier to use than before.", "expected": "positive"},
@@ -146,11 +146,11 @@ FALLBACK_QA_SAMPLES = [
 
 class StatisticalAnalyzer:
     """
-    Analyse statistique rigoureuse pour les métriques de benchmark.
+    Rigorous statistical analysis for benchmark metrics.
     
-    Fournit:
-    - Bootstrap CI 95%
-    - Variance et écart-type
+    Provides:
+    - Bootstrap 95% CI
+    - Variance and standard deviation
     - Standard Error of Mean (SEM)
     """
     
@@ -165,12 +165,12 @@ class StatisticalAnalyzer:
         ci: float = 0.95,
     ) -> tuple[float, float]:
         """
-        Calcule l'intervalle de confiance par bootstrap.
+        Compute confidence interval via bootstrap.
         
         Args:
-            values: Liste de valeurs (0/1 pour accuracy, ou floats)
-            n_bootstrap: Nombre d'échantillons bootstrap
-            ci: Niveau de confiance (0.95 = 95%)
+            values: List of values (0/1 for accuracy, or floats)
+            n_bootstrap: Number of bootstrap samples
+            ci: Confidence level (0.95 = 95%)
             
         Returns:
             Tuple (lower_bound, upper_bound)
@@ -181,7 +181,7 @@ class StatisticalAnalyzer:
         values = np.array(values)
         n = len(values)
         
-        # Générer les échantillons bootstrap
+        # Generate bootstrap samples
         bootstrap_means = []
         for _ in range(n_bootstrap):
             sample = np.random.choice(values, size=n, replace=True)
@@ -189,7 +189,7 @@ class StatisticalAnalyzer:
         
         bootstrap_means = np.array(bootstrap_means)
         
-        # Calculer les percentiles
+        # Calculate percentiles
         alpha = 1 - ci
         lower = np.percentile(bootstrap_means, 100 * alpha / 2)
         upper = np.percentile(bootstrap_means, 100 * (1 - alpha / 2))
@@ -198,7 +198,7 @@ class StatisticalAnalyzer:
     
     def compute_stats(self, values: list) -> dict:
         """
-        Calcule les statistiques descriptives complètes.
+        Calculates complete descriptive statistics.
         
         Returns:
             Dict avec mean, std, variance, sem, n, ci_95
@@ -233,7 +233,7 @@ class StatisticalAnalyzer:
     
     def binary_metrics_with_ci(self, correct_list: list[bool]) -> dict:
         """
-        Calcule accuracy avec IC pour des résultats binaires.
+        Calculates accuracy with CI for binary results.
         
         Args:
             correct_list: Liste de booléens (True = correct)
@@ -255,7 +255,7 @@ class StatisticalAnalyzer:
 # === DATASET LOADERS ===
 
 class DatasetLoader:
-    """Charge les datasets depuis Hugging Face avec fallback."""
+    """Loads datasets from Hugging Face with fallback."""
     
     def __init__(self, cache_dir: Optional[Path] = None, seed: int = 42):
         self.cache_dir = cache_dir
@@ -268,8 +268,8 @@ class DatasetLoader:
         Charge FinQA via ChanceFocus/flare-finqa.
         
         Structure:
-        - query: question complète avec contexte
-        - answer: réponse attendue
+        - query: complete question with context
+        - answer: expected answer
         - text: question seule
         """
         cache_key = f"flare_finqa_{split}_{limit}"
@@ -290,14 +290,14 @@ class DatasetLoader:
             for idx in indices[:limit]:
                 item = dataset[idx]
                 
-                # Extraire le contexte de la query (avant "Context:")
+                # Extract context from query (before "Context:")
                 query = item.get("query", "")
                 context = ""
                 if "Context:" in query:
                     parts = query.split("Context:")
                     if len(parts) > 1:
                         context = parts[1].strip()
-                        # Trouver où commence la question
+                        # Find where the question starts
                         if "\n" in context:
                             context = context[:context.rfind("\n")]
                 
@@ -322,8 +322,8 @@ class DatasetLoader:
         Charge ConvFinQA via ChanceFocus/flare-convfinqa.
         
         Structure:
-        - query: question avec contexte
-        - answer: réponse
+        - query: question with context
+        - answer: answer
         - turn: numéro du tour de dialogue
         - dialogue_id: id du dialogue
         """
@@ -348,12 +348,12 @@ class DatasetLoader:
                 query = item.get("query", "")
                 context = ""
                 if "Context:" in query or "context:" in query.lower():
-                    # Extraire le contexte
+                    # Extract context
                     context = query
                 
                 samples.append({
                     "context": context[:3500],
-                    "question": query[-500:] if len(query) > 500 else query,  # Dernière partie = question
+                    "question": query[-500:] if len(query) > 500 else query,  # Last part = question
                     "answer": str(item.get("answer", "")),
                     "turn": item.get("turn", 0),
                     "dialogue_id": item.get("dialogue_id", idx),
@@ -455,7 +455,7 @@ class DatasetLoader:
         
         Structure:
         - question: question en français
-        - context: contexte du rapport financier
+        - context: financial report context
         """
         cache_key = f"sujet_fr_{split}_{limit}"
         if cache_key in self._cache:
@@ -477,7 +477,7 @@ class DatasetLoader:
                 samples.append({
                     "context": item.get("context", "")[:3500],
                     "question": item.get("question", ""),
-                    "answer": "",  # Pas de réponse gold dans ce dataset
+                    "answer": "",  # No gold answer in this dataset
                     "source": "sujet_rag_fr",
                     "language": "fr",
                 })
@@ -493,16 +493,16 @@ class DatasetLoader:
 
 @dataclass
 class ScenarioResult:
-    """Résultat d'un scénario avec métadonnées méthodologiques."""
+    """Scenario result with methodological metadata."""
     
     scenario_name: str
     model_id: str
     num_samples: int
     
-    # Métriques spécifiques au scénario
+    # Scenario-specific metrics
     metrics: dict = field(default_factory=dict)
     
-    # Temps
+    # Timing
     avg_latency_ms: float = 0.0
     total_time_seconds: float = 0.0
     
@@ -510,10 +510,10 @@ class ScenarioResult:
     dataset_source: str = ""
     dataset_citation: str = ""
     
-    # Méthodologie (nouveau)
+    # Methodology
     methodology: dict = field(default_factory=dict)
     
-    # Détails
+    # Details
     responses: list = field(default_factory=list)
     timestamp: str = ""
     
@@ -534,13 +534,13 @@ class ScenarioResult:
 
 class RealisticScenariosEvaluator:
     """
-    Évaluateur de scénarios réalistes banking.
+    Realistic banking scenarios evaluator.
     
-    Utilise des datasets publics pour une évaluation rigoureuse et reproductible.
-    Inclut:
-    - Métriques strictes (exact match, numerical accuracy)
-    - Intervalles de confiance 95% (bootstrap)
-    - Documentation des limites méthodologiques
+    Uses public datasets for rigorous and reproducible evaluation.
+    Includes:
+    - Strict metrics (exact match, numerical accuracy)
+    - 95% confidence intervals (bootstrap)
+    - Documentation of methodological limitations
     """
     
     def __init__(
@@ -560,10 +560,10 @@ class RealisticScenariosEvaluator:
     
     def _extract_numbers(self, text: str) -> list[float]:
         """
-        Extrait tous les nombres d'un texte avec support robuste pour:
-        - Formats internationaux (US: 1,234.56 vs EU: 1.234,56)
-        - Nombres négatifs en format comptable: (150.0) = -150.0
-        - Pourcentages, monnaies, unités (million/billion)
+        Extracts all numbers from text with robust support for:
+        - International formats (US: 1,234.56 vs EU: 1.234,56)
+        - Negative numbers in accounting format: (150.0) = -150.0
+        - Percentages, currencies, units (million/billion)
         """
         if not text:
             return []
@@ -572,24 +572,24 @@ class RealisticScenariosEvaluator:
         text_original = text
         text_lower = text.lower()
         
-        # 1. Extraire les nombres négatifs en format comptable: (150.0) ou (1,234.56)
-        # Ceci est courant en comptabilité pour représenter les pertes
+        # 1. Extract negative numbers in accounting format: (150.0) or (1,234.56)
+        # This is common in accounting to represent losses
         accounting_pattern = r'\((\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?)\)'
         for match in re.finditer(accounting_pattern, text_lower):
             num_str = match.group(1)
             parsed = self._parse_number_string(num_str)
             if parsed is not None:
-                numbers.append(-parsed)  # Négatif car entre parenthèses
+                numbers.append(-parsed)  # Negative because in parentheses
         
-        # 2. Patterns standards pour les nombres
+        # 2. Standard patterns for numbers
         patterns = [
-            # Pourcentages (avec signe optionnel)
+            # Percentages (with optional sign)
             r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?%',
-            # Monnaie avec symbole (USD, EUR, etc.)
+            # Currency with symbol (USD, EUR, etc.)
             r'[+-]?[$€£¥]\s*\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?',
-            # Nombres avec unités (million, billion, etc.)
+            # Numbers with units (million, billion, etc.)
             r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?\s*(?:million|billion|trillion|m|b|bn|k)',
-            # Nombres décimaux standards (attrape tout le reste)
+            # Standard decimal numbers (catches everything else)
             r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?',
         ]
         
@@ -604,21 +604,21 @@ class RealisticScenariosEvaluator:
     
     def _parse_number_string(self, num_str: str) -> float | None:
         """
-        Parse une chaîne de caractères en nombre, gérant les formats internationaux.
+        Parses a string into a number, handling international formats.
         
-        Détecte automatiquement:
-        - Format US: 1,234.56 (virgule = séparateur milliers, point = décimal)
-        - Format EU: 1.234,56 (point = séparateur milliers, virgule = décimal)
+        Automatically detects:
+        - US format: 1,234.56 (comma = thousands separator, period = decimal)
+        - EU format: 1.234,56 (period = thousands separator, comma = decimal)
         """
         if not num_str:
             return None
         
-        # Nettoyer les symboles monétaires et espaces
+        # Clean currency symbols and spaces
         clean = num_str.strip()
         clean = re.sub(r'[$€£¥\s]', '', clean)
         clean = clean.replace('%', '')
         
-        # Gérer les unités multiplicatrices
+        # Handle multiplier units
         multiplier = 1.0
         unit_patterns = [
             (r'trillion|t$', 1e12),
@@ -634,49 +634,49 @@ class RealisticScenariosEvaluator:
         
         clean = clean.strip()
         
-        # Gérer le signe
+        # Handle sign
         negative = clean.startswith('-')
         if clean.startswith(('+', '-')):
             clean = clean[1:]
         
-        # Détecter le format: US vs EU
-        # Heuristique: regarder le dernier séparateur
-        # Si le dernier est une virgule suivie de 1-2 chiffres: format EU (décimal = virgule)
-        # Si le dernier est un point suivi de 1-2 chiffres: format US (décimal = point)
+        # Detect format: US vs EU
+        # Heuristic: look at the last separator
+        # If the last is a comma followed by 1-2 digits: EU format (decimal = comma)
+        # If the last is a period followed by 1-2 digits: US format (decimal = period)
         
         has_comma = ',' in clean
         has_period = '.' in clean
         
         if has_comma and has_period:
-            # Les deux sont présents - déterminer lequel est le décimal
+            # Both present - determine which is the decimal
             last_comma = clean.rfind(',')
             last_period = clean.rfind('.')
             
             if last_comma > last_period:
-                # Format EU: 1.234,56 (virgule est le décimal)
+                # EU format: 1.234,56 (comma is decimal)
                 clean = clean.replace('.', '').replace(',', '.')
             else:
-                # Format US: 1,234.56 (point est le décimal)
+                # US format: 1,234.56 (period is decimal)
                 clean = clean.replace(',', '')
         elif has_comma:
-            # Seulement des virgules
-            # Si la partie après la dernière virgule a 3 chiffres, c'est un séparateur de milliers
+            # Only commas
+            # If the part after the last comma has 3 digits, it's a thousands separator
             parts = clean.split(',')
             if len(parts[-1]) == 3 and len(parts) > 1:
-                # Séparateur de milliers (format US sans décimal)
+                # Thousands separator (US format without decimal)
                 clean = clean.replace(',', '')
             else:
-                # Décimal (format EU sans séparateur de milliers)
+                # Decimal (EU format without thousands separator)
                 clean = clean.replace(',', '.')
         elif has_period:
-            # Seulement des points
-            # Si la partie après le dernier point a 3 chiffres, c'est un séparateur de milliers (EU)
+            # Only periods
+            # If the part after the last period has 3 digits, it's a thousands separator (EU)
             parts = clean.split('.')
             if len(parts[-1]) == 3 and len(parts) > 1:
-                # Pourrait être un séparateur de milliers EU, mais aussi juste un nombre comme 1.234
-                # Par défaut, traiter comme décimal (format US)
+                # Could be EU thousands separator, but also just a number like 1.234
+                # Default: treat as decimal (US format)
                 pass
-            # Sinon c'est un décimal standard
+            # Otherwise it's a standard decimal
         
         try:
             result = float(clean) * multiplier
@@ -686,7 +686,7 @@ class RealisticScenariosEvaluator:
     
     def _extract_final_answer(self, text: str) -> str:
         """
-        Extrait la réponse finale d'un texte, isolant le résultat numérique
+        Extracts the final answer from text, isolating the numerical result
         du reste de la phrase.
         
         Cherche des patterns comme:
@@ -698,7 +698,7 @@ class RealisticScenariosEvaluator:
         if not text:
             return ""
         
-        # Patterns pour identifier la réponse finale
+        # Patterns to identify final answer
         answer_patterns = [
             r'(?:the\s+)?(?:final\s+)?answer\s*(?:is|:)\s*(.+?)(?:\.|$)',
             r'(?:result|total|sum|value)\s*(?:is|:|=)\s*(.+?)(?:\.|$)',
@@ -713,7 +713,7 @@ class RealisticScenariosEvaluator:
             if match:
                 return match.group(1).strip()
         
-        # Fallback: retourner le texte nettoyé
+        # Fallback: return cleaned text
         return text.strip()
     
     def _numerical_match(
@@ -723,15 +723,15 @@ class RealisticScenariosEvaluator:
         tolerance: float = 0.01,
     ) -> bool:
         """
-        Compare les réponses numériques avec une tolérance.
+        Compares numerical responses with a tolerance.
         
         Args:
-            pred: Prédiction du modèle
+            pred: Model prediction
             gold: Réponse attendue
             tolerance: Tolérance relative (0.01 = 1%)
             
         Returns:
-            True si les nombres correspondent dans la tolérance
+            True if numbers match within tolerance
         """
         if not pred or not gold:
             return False
@@ -741,24 +741,24 @@ class RealisticScenariosEvaluator:
         if not gold_numbers:
             return False
         
-        # D'abord, essayer d'extraire la réponse finale (plus précis)
+        # First, try to extract the final answer (more precise)
         final_answer = self._extract_final_answer(pred)
         pred_numbers_final = self._extract_numbers(final_answer)
         
-        # Sinon, utiliser tous les nombres de la prédiction
+        # Otherwise, use all numbers from the prediction
         pred_numbers_all = self._extract_numbers(pred)
         
-        # Combiner: priorité aux nombres de la réponse finale
+        # Combine: priority to numbers from final answer
         pred_numbers = pred_numbers_final if pred_numbers_final else pred_numbers_all
         
-        # Vérifier si le nombre gold principal est présent dans la prédiction
+        # Check if the main gold number is present in the prediction
         gold_main = gold_numbers[0]
         
         for pred_num in pred_numbers:
             if self._numbers_match(pred_num, gold_main, tolerance):
                 return True
         
-        # Si pas trouvé dans la réponse finale, chercher dans tous les nombres
+        # If not found in final answer, search in all numbers
         if pred_numbers_final and not pred_numbers_all == pred_numbers_final:
             for pred_num in pred_numbers_all:
                 if self._numbers_match(pred_num, gold_main, tolerance):
@@ -772,16 +772,16 @@ class RealisticScenariosEvaluator:
         b: float,
         tolerance: float = 0.01,
     ) -> bool:
-        """Compare deux nombres avec tolérance relative et absolue."""
-        # Cas spécial: les deux sont zéro
+        """Compare two numbers with relative and absolute tolerance."""
+        # Special case: both are zero
         if a == 0 and b == 0:
             return True
         
-        # Cas spécial: un seul est zéro
+        # Special case: only one is zero
         if a == 0 or b == 0:
-            return abs(a - b) < 0.001  # Tolérance absolue pour les petits nombres
+            return abs(a - b) < 0.001  # Absolute tolerance for small numbers
         
-        # Tolérance relative
+        # Relative tolerance
         relative_diff = abs(a - b) / max(abs(a), abs(b))
         return relative_diff <= tolerance
     
@@ -814,14 +814,14 @@ class RealisticScenariosEvaluator:
         gold_tokens = normalize(gold)
         
         # Match exact si gold tokens sont un sous-ensemble de pred
-        # (gold peut être court: "15%" mais pred: "the answer is 15%")
+        # (gold can be short: "15%" but pred: "the answer is 15%")
         if not gold_tokens:
             return False
         
         return gold_tokens.issubset(pred_tokens) or pred_tokens == gold_tokens
     
     def _normalize_answer(self, answer: str) -> str:
-        """Normalise une réponse pour la comparaison."""
+        """Normalize an answer for comparison."""
         if not answer:
             return ""
         answer = answer.lower().strip()
@@ -829,7 +829,7 @@ class RealisticScenariosEvaluator:
         return answer
     
     def _compute_f1(self, pred: str, gold: str) -> float:
-        """Calcule le F1 score basé sur le chevauchement de tokens."""
+        """Compute F1 score based on token overlap."""
         if not pred or not gold:
             return 0.0
         
@@ -849,7 +849,7 @@ class RealisticScenariosEvaluator:
         return 2 * precision * recall / (precision + recall)
     
     def _is_french(self, text: str) -> bool:
-        """Vérifie si le texte semble être en français (heuristique simple)."""
+        """Check if text appears to be in French (simple heuristic)."""
         if not text:
             return False
         
@@ -875,15 +875,15 @@ class RealisticScenariosEvaluator:
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue sur FinQA - Question Answering financier avec raisonnement numérique.
+        Evaluates on FinQA - Financial Question Answering with numerical reasoning.
         
-        Métriques strictes:
-        - exact_match_strict: Comparaison normalisée stricte
-        - numerical_accuracy: Match numérique avec tolérance ±1%
+        Strict metrics:
+        - exact_match_strict: Strict normalized comparison
+        - numerical_accuracy: Numerical match with ±1% tolerance
         - f1_score: Token overlap
-        - answer_present: Réponse dans le texte (métrique secondaire)
+        - answer_present: Answer in text (secondary metric)
         
-        Toutes les métriques incluent IC 95% par bootstrap.
+        All metrics include 95% CI via bootstrap.
         """
         samples = self.loader.load_flare_finqa(limit=num_samples)
         
@@ -895,7 +895,7 @@ Provide the final answer clearly."""
         responses = []
         latencies = []
         
-        # Listes pour calcul des IC
+        # Lists for CI calculation
         exact_strict_list = []
         numerical_list = []
         f1_list = []
@@ -931,7 +931,7 @@ Answer:"""
             
             latencies.append(result.metrics.total_time_ms)
             
-            # Calcul des métriques strictes
+            # Strict metrics calculation
             predicted = result.content.strip() if result.content else ""
             
             is_exact_strict = self._exact_match_strict(predicted, expected)
@@ -958,13 +958,13 @@ Answer:"""
         
         total_time = time.time() - start_time
         
-        # Calculer les statistiques avec IC
+        # Calculate statistics with CI
         exact_stats = self.stats.binary_metrics_with_ci(exact_strict_list)
         numerical_stats = self.stats.binary_metrics_with_ci(numerical_list)
         present_stats = self.stats.binary_metrics_with_ci(answer_present_list)
         f1_stats = self.stats.compute_stats(f1_list)
         
-        # Récupérer les métadonnées de sample size
+        # Get sample size metadata
         rationale = SAMPLE_SIZE_RATIONALE.get("financial_qa", {})
         
         return ScenarioResult(
@@ -972,12 +972,12 @@ Answer:"""
             model_id=model_id,
             num_samples=len(samples),
             metrics={
-                # Métriques strictes avec IC
+                # Strict metrics with CI
                 "exact_match_strict": exact_stats["accuracy"],
                 "exact_match_strict_ci_95": exact_stats["accuracy_ci_95"],
                 "numerical_accuracy": numerical_stats["accuracy"],
                 "numerical_accuracy_ci_95": numerical_stats["accuracy_ci_95"],
-                # Métriques soft
+                # Soft metrics
                 "f1_score": f1_stats["mean"],
                 "f1_score_ci_95": f1_stats["ci_95"],
                 "answer_present": present_stats["accuracy"],
@@ -1007,11 +1007,11 @@ Answer:"""
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue sur Financial PhraseBank ou Twitter Financial Sentiment.
+        Evaluates on Financial PhraseBank or Twitter Financial Sentiment.
         
-        Métriques:
-        - Accuracy avec IC 95%
-        - Macro F1 avec IC 95%
+        Metrics:
+        - Accuracy with 95% CI
+        - Macro F1 with 95% CI
         - Per-class breakdown
         """
         if use_twitter:
@@ -1051,7 +1051,7 @@ Respond with exactly one word: positive, negative, or neutral."""
             
             latencies.append(result.metrics.total_time_ms)
             
-            # Parser la prédiction
+            # Parse prediction
             pred = "neutral"
             if result.success and result.content:
                 content = result.content.lower().strip()
@@ -1063,7 +1063,7 @@ Respond with exactly one word: positive, negative, or neutral."""
             is_correct = pred == expected
             correct_list.append(is_correct)
             
-            # Mise à jour confusion matrix
+            # Update confusion matrix
             if expected not in confusion:
                 confusion[expected] = {}
             confusion[expected][pred] = confusion[expected].get(pred, 0) + 1
@@ -1078,10 +1078,10 @@ Respond with exactly one word: positive, negative, or neutral."""
         
         total_time = time.time() - start_time
         
-        # Calcul des métriques avec IC
+        # Calculate metrics with CI
         accuracy_stats = self.stats.binary_metrics_with_ci(correct_list)
         
-        # Macro F1 (calculer par classe puis moyenner)
+        # Macro F1 (calculate per class then average)
         f1_per_class = []
         for label in ["positive", "negative", "neutral"]:
             tp = confusion.get(label, {}).get(label, 0)
@@ -1095,7 +1095,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         
         macro_f1 = sum(f1_per_class) / len(f1_per_class) if f1_per_class else 0
         
-        # Récupérer les métadonnées
+        # Get metadata
         rationale = SAMPLE_SIZE_RATIONALE.get(rationale_key, {})
         
         return ScenarioResult(
@@ -1136,14 +1136,14 @@ Respond with exactly one word: positive, negative, or neutral."""
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue sur ConvFinQA - QA conversationnel financier multi-tours.
+        Evaluates on ConvFinQA - Multi-turn conversational financial QA.
         
-        Métriques strictes:
-        - exact_match_strict: Comparaison normalisée stricte
-        - numerical_accuracy: Match numérique avec tolérance ±1%
-        - answer_present: Réponse présente (métrique secondaire)
+        Strict metrics:
+        - exact_match_strict: Strict normalized comparison
+        - numerical_accuracy: Numerical match with ±1% tolerance
+        - answer_present: Answer present (secondary metric)
         
-        Toutes les métriques incluent IC 95%.
+        All metrics include 95% CI.
         """
         samples = self.loader.load_flare_convfinqa(limit=num_samples)
         
@@ -1184,11 +1184,11 @@ Please provide the answer:"""
             
             predicted = result.content.strip() if result.content else ""
             
-            # Métriques strictes
+            # Strict metrics
             is_exact_strict = self._exact_match_strict(predicted, expected)
             is_numerical = self._numerical_match(predicted, expected)
             
-            # Answer present (métrique laxiste)
+            # Answer present (lenient metric)
             is_present = False
             if expected and predicted:
                 exp_norm = str(expected).lower().replace(",", "").replace(" ", "")
@@ -1213,12 +1213,12 @@ Please provide the answer:"""
         
         total_time = time.time() - start_time
         
-        # Calculer les statistiques avec IC
+        # Calculate statistics with CI
         exact_stats = self.stats.binary_metrics_with_ci(exact_strict_list)
         numerical_stats = self.stats.binary_metrics_with_ci(numerical_list)
         present_stats = self.stats.binary_metrics_with_ci(answer_present_list)
         
-        # Récupérer les métadonnées
+        # Get metadata
         rationale = SAMPLE_SIZE_RATIONALE.get("conversational_qa", {})
         
         return ScenarioResult(
@@ -1307,17 +1307,17 @@ Please provide the answer:"""
         source_text: str,
     ) -> dict:
         """
-        Calcule le score de Grounding: vérifie si les nombres dans le JSON
+        Calculates the Grounding score: verifies if numbers in the JSON
         existent dans le texte source.
         
         Cela permet de détecter les hallucinations numériques.
         
         Returns:
             Dict avec:
-            - grounding_rate: % de nombres du JSON trouvés dans le source
-            - total_numbers_in_json: nombre total de valeurs numériques dans le JSON
-            - grounded_numbers: nombre de valeurs correctement ancrées
-            - hallucinated_numbers: liste des nombres qui ne sont pas dans le source
+            - grounding_rate: % of JSON numbers found in source
+            - total_numbers_in_json: total count of numeric values in JSON
+            - grounded_numbers: count of correctly grounded values
+            - hallucinated_numbers: list of numbers not in source
         """
         if not parsed_json or not source_text:
             return {
@@ -1327,21 +1327,21 @@ Please provide the answer:"""
                 "hallucinated_numbers": [],
             }
         
-        # Extraire tous les nombres du texte source
+        # Extract all numbers from source text
         source_numbers = set(self._extract_numbers(source_text))
         
-        # Extraire tous les nombres du JSON (récursivement)
+        # Extract all numbers from JSON (recursively)
         json_numbers = self._extract_numbers_from_json(parsed_json)
         
         if not json_numbers:
             return {
-                "grounding_rate": 1.0,  # Pas de nombres = pas d'hallucination
+                "grounding_rate": 1.0,  # No numbers = no hallucination
                 "total_numbers_in_json": 0,
                 "grounded_numbers": 0,
                 "hallucinated_numbers": [],
             }
         
-        # Vérifier le grounding de chaque nombre
+        # Check grounding of each number
         grounded = []
         hallucinated = []
         
@@ -1363,11 +1363,11 @@ Please provide the answer:"""
             "grounding_rate": round(grounding_rate, 4),
             "total_numbers_in_json": len(json_numbers),
             "grounded_numbers": len(grounded),
-            "hallucinated_numbers": hallucinated[:10],  # Limiter pour lisibilité
+            "hallucinated_numbers": hallucinated[:10],  # Limit for readability
         }
     
     def _extract_numbers_from_json(self, obj, numbers: list = None) -> list[float]:
-        """Extrait récursivement tous les nombres d'un objet JSON."""
+        """Recursively extract all numbers from a JSON object."""
         if numbers is None:
             numbers = []
         
@@ -1375,7 +1375,7 @@ Please provide the answer:"""
             if not isinstance(obj, bool):  # bool est une sous-classe de int
                 numbers.append(float(obj))
         elif isinstance(obj, str):
-            # Extraire les nombres des chaînes
+            # Extract numbers from strings
             extracted = self._extract_numbers(obj)
             numbers.extend(extracted)
         elif isinstance(obj, dict):
@@ -1394,25 +1394,25 @@ Please provide the answer:"""
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue l'extraction d'information structurée à partir de documents financiers.
+        Evaluates structured information extraction from financial documents.
         
-        NOTE MÉTHODOLOGIQUE:
-        Cette évaluation mesure la VALIDITÉ STRUCTURELLE, pas l'exactitude du contenu.
-        Il n'y a pas de gold JSON disponible dans FinQA.
+        METHODOLOGICAL NOTE:
+        This evaluation measures STRUCTURAL VALIDITY, not content accuracy.
+        There is no gold JSON available in FinQA.
         
-        Stratégie JSON:
-        1. Essayer le mode JSON contraint du serveur (response_format)
-        2. Si échec, fallback vers extraction manuelle du JSON depuis la réponse
+        JSON Strategy:
+        1. Try constrained JSON mode from server (response_format)
+        2. If fails, fallback to manual JSON extraction from response
         
-        Métriques:
-        - JSON validity rate (avec IC 95%)
+        Metrics:
+        - JSON validity rate (with 95% CI)
         - Field extraction count
-        - Grounding rate (nouveaux): % de nombres du JSON présents dans le source
+        - Grounding rate (new): % of JSON numbers present in source
         """
         samples = self.loader.load_flare_finqa(limit=num_samples)
         
-        # Prompt optimisé pour Grounding > 85%
-        # Rôle d'auditeur strict = moins de prise de risque = moins d'hallucinations
+        # Prompt optimized for Grounding > 85%
+        # Strict auditor role = less risk-taking = fewer hallucinations
         system_prompt = """You are a strict financial data auditor. 
 Your ONLY goal is to extract raw data into JSON.
 
@@ -1440,8 +1440,8 @@ If you are unsure about a value, set it to null instead of hallucinating."""
             if not context:
                 continue
             
-            # Prompt avec balises d'isolation pour améliorer l'attention
-            # et instruction de "Double-Check" pour réduire les hallucinations
+            # Prompt with isolation tags to improve attention
+            # and "Double-Check" instruction to reduce hallucinations
             prompt = f"""[SOURCE DOCUMENT]
 {context}
 [/SOURCE DOCUMENT]
@@ -1509,7 +1509,7 @@ JSON:"""
                 }
             }
             
-            # Stratégie 1: Essayer le mode JSON Schema contraint (LM Studio)
+            # Strategy 1: Try constrained JSON Schema mode (LM Studio)
             try:
                 result = self.client.complete(
                     model=model_id,
@@ -1526,12 +1526,12 @@ JSON:"""
                     parsed_json = result.parsed_json
                     mode_used = "json_schema_constrained"
                 elif result.content:
-                    # Le mode contraint a échoué, essayer extraction manuelle
+                    # Constrained mode failed, try manual extraction
                     parsed_json = self._extract_json_from_text(result.content)
                     if parsed_json:
                         mode_used = "manual_from_constrained"
             except Exception as e:
-                # Le serveur ne supporte peut-être pas response_format json_schema
+                # Server may not support response_format json_schema
                 # Essayer le format json_object simple (fallback OpenAI)
                 try:
                     result = self.client.complete(
@@ -1555,7 +1555,7 @@ JSON:"""
                 except Exception:
                     pass
             
-            # Stratégie 2: Fallback vers appel sans mode contraint (prompt only)
+            # Strategy 2: Fallback to call without constrained mode (prompt only)
             if parsed_json is None:
                 try:
                     result = self.client.complete(
@@ -1564,7 +1564,7 @@ JSON:"""
                         temperature=0,
                         max_tokens=500,
                         stream=False,
-                        # Pas de response_format - le modèle doit suivre le prompt
+                        # No response_format - model must follow the prompt
                     )
                     
                     if not latencies or len(latencies) < len(results) + 1:
@@ -1589,7 +1589,7 @@ JSON:"""
                 "raw_response": result.content[:300] if result and result.content else None,
             }
             
-            # Calculer les champs présents
+            # Calculate present fields
             if is_valid and parsed_json:
                 expected_fields = ["document_type", "key_figures", "time_period", "entities"]
                 fields_present = sum(1 for f in expected_fields if f in parsed_json)
@@ -1597,7 +1597,7 @@ JSON:"""
                 extraction_result["fields_expected"] = len(expected_fields)
                 fields_list.append(fields_present)
                 
-                # Calculer le score de Grounding
+                # Calculate Grounding score
                 grounding = self._compute_grounding_score(parsed_json, context)
                 extraction_result["grounding"] = grounding
                 grounding_list.append(grounding["grounding_rate"])
@@ -1609,17 +1609,17 @@ JSON:"""
         
         total_time = time.time() - start_time
         
-        # Calculer les statistiques
+        # Calculate statistics
         valid_stats = self.stats.binary_metrics_with_ci(valid_json_list)
         fields_stats = self.stats.compute_stats(fields_list)
         grounding_stats = self.stats.compute_stats(grounding_list)
         
-        # Statistiques sur les modes utilisés
+        # Statistics on modes used
         mode_counts = {}
         for mode in json_mode_used:
             mode_counts[mode] = mode_counts.get(mode, 0) + 1
         
-        # Récupérer les métadonnées
+        # Get metadata
         rationale = SAMPLE_SIZE_RATIONALE.get("info_extraction", {})
         
         return ScenarioResult(
@@ -1632,12 +1632,12 @@ JSON:"""
                 "valid_json_count": sum(valid_json_list),
                 "avg_fields_extracted": fields_stats["mean"],
                 "avg_fields_ci_95": fields_stats["ci_95"],
-                # Nouvelle métrique de Grounding
+                # New Grounding metric
                 "grounding_rate": grounding_stats["mean"],
                 "grounding_rate_ci_95": grounding_stats["ci_95"],
-                # Métadonnées sur les modes
+                # Mode metadata
                 "json_mode_stats": mode_counts,
-                # Métadonnées importantes
+                # Important metadata
                 "metric_type": "structural_validity_with_grounding",
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
@@ -1667,14 +1667,14 @@ JSON:"""
         progress_bar: bool = True,
     ) -> ScenarioResult:
         """
-        Évalue la capacité multilingue sur le dataset français Sujet Financial RAG.
+        Evaluates multilingual capability on the French Sujet Financial RAG dataset.
         
-        NOTE MÉTHODOLOGIQUE:
-        Cette évaluation est QUALITATIVE uniquement.
-        Le dataset n'a pas de gold answers disponibles.
+        METHODOLOGICAL NOTE:
+        This evaluation is QUALITATIVE only.
+        The dataset has no gold answers available.
         
-        Métriques:
-        - French response rate (heuristique)
+        Metrics:
+        - French response rate (heuristic)
         - Average response length
         - Success rate
         """
@@ -1694,9 +1694,9 @@ JSON:"""
                 timestamp=datetime.now().isoformat(),
             )
         
-        system_prompt = """Vous êtes un assistant financier expert. 
-Répondez aux questions sur les documents financiers de manière précise et concise.
-Répondez toujours en français."""
+        system_prompt = """You are an expert financial assistant. 
+Answer questions about financial documents accurately and concisely.
+Always respond in French."""
         
         responses = []
         latencies = []
@@ -1746,11 +1746,11 @@ Réponse:"""
         
         total_time = time.time() - start_time
         
-        # Calculer les statistiques
+        # Calculate statistics
         french_stats = self.stats.binary_metrics_with_ci(french_list)
         length_stats = self.stats.compute_stats(length_list)
         
-        # Récupérer les métadonnées
+        # Get metadata
         rationale = SAMPLE_SIZE_RATIONALE.get("multilingual_fr", {})
         
         return ScenarioResult(
@@ -1763,7 +1763,7 @@ Réponse:"""
                 "avg_response_length": length_stats["mean"],
                 "avg_response_length_ci_95": length_stats["ci_95"],
                 "success_rate": sum(1 for r in responses if r["success"]) / len(responses) if responses else 0,
-                # Métadonnées importantes
+                # Important metadata
                 "metric_type": "qualitative_assessment",
                 "is_qualitative": True,
             },
@@ -1795,7 +1795,7 @@ Réponse:"""
         Exécute tous les scénarios réalistes.
         
         Args:
-            model_id: ID du modèle LM Studio
+            model_id: LM Studio model ID
             include_multilingual: Inclure le test français (qualitatif)
             include_conversational: Inclure ConvFinQA
         """
@@ -1842,16 +1842,16 @@ Réponse:"""
             print(f"\n[{current}/{total_scenarios}] Multilingual French [Qualitative Assessment]")
             results["multilingual_fr"] = self.evaluate_multilingual_fr(model_id)
         
-        # Résumé
+        # Summary
         self._print_summary(results)
         
-        # Sauvegarder
+        # Save
         self._save_results(results, model_id)
         
         return results
     
     def _print_summary(self, results: dict[str, ScenarioResult]):
-        """Affiche le résumé des résultats avec IC."""
+        """Display results summary with CI."""
         print(f"\n{'='*60}")
         print("SUMMARY (with 95% Confidence Intervals)")
         print(f"{'='*60}")
@@ -1859,7 +1859,7 @@ Réponse:"""
         for name, result in results.items():
             print(f"\n{name.upper()}:")
             
-            # Afficher le type de métrique
+            # Display metric type
             metric_type = result.methodology.get("metric_type", "quantitative")
             if metric_type != "quantitative":
                 print(f"  ⚠️  Metric type: {metric_type}")
@@ -1871,7 +1871,7 @@ Réponse:"""
                 if key in ["confusion_matrix", "error", "metric_type", "is_qualitative", "per_class_f1"]:
                     continue
                 if key.endswith("_ci_95"):
-                    continue  # Afficher avec la métrique principale
+                    continue  # Display with main metric
                 
                 if isinstance(value, float):
                     ci_key = f"{key}_ci_95"
@@ -1891,12 +1891,12 @@ Réponse:"""
             
             print(f"  avg_latency: {result.avg_latency_ms:.1f} ms")
             
-            # Afficher les limitations si présentes
+            # Display limitations if present
             if result.methodology.get("limitations"):
                 print(f"  Limitations: {len(result.methodology['limitations'])} noted")
     
     def _save_results(self, results: dict[str, ScenarioResult], model_id: str):
-        """Sauvegarde les résultats avec méthodologie complète."""
+        """Save results with complete methodology."""
         model_name = model_id.replace("/", "_")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"realistic_scenarios_{model_name}_{timestamp}.json"
@@ -1907,7 +1907,7 @@ Réponse:"""
             "model_id": model_id,
             "timestamp": datetime.now().isoformat(),
             "seed": self.seed,
-            "framework_version": "2.0",  # Version avec métriques strictes
+            "framework_version": "2.0",  # Version with strict metrics
             "datasets_used": DATASET_CONFIG,
             "sample_size_rationale": SAMPLE_SIZE_RATIONALE,
             "results": {name: result.to_dict() for name, result in results.items()},

@@ -2,8 +2,8 @@
 Checkpoint Module
 =================
 
-Système de checkpoint pour reprendre les benchmarks en cas d'interruption.
-Sauvegarde l'état après chaque modèle/scénario.
+Checkpoint system for resuming benchmarks in case of interruption.
+Saves state after each model/scenario.
 """
 
 import json
@@ -15,20 +15,20 @@ from typing import Optional, Set
 
 @dataclass
 class CheckpointState:
-    """État d'un checkpoint."""
+    """Checkpoint state."""
     
     experiment_id: str
-    task_type: str  # "performance" ou "capability"
+    task_type: str  # "performance" or "capability"
     
-    # Modèles/scénarios prévus
+    # Planned models/scenarios
     planned_models: list[str] = field(default_factory=list)
     planned_scenarios: list[str] = field(default_factory=list)
     planned_tasks: list[str] = field(default_factory=list)
     
-    # Complétés
+    # Completed
     completed: list[dict] = field(default_factory=list)
     
-    # Échoués (avec erreur)
+    # Failed (with error)
     failed: list[dict] = field(default_factory=list)
     
     # Timestamps
@@ -36,20 +36,20 @@ class CheckpointState:
     last_updated: str = ""
     
     def get_completed_keys(self) -> Set[str]:
-        """Retourne les clés des tâches complétées."""
+        """Return keys of completed tasks."""
         return {f"{c['model']}|{c.get('scenario', c.get('task', ''))}" for c in self.completed}
     
     def get_failed_keys(self) -> Set[str]:
-        """Retourne les clés des tâches échouées."""
+        """Return keys of failed tasks."""
         return {f"{f['model']}|{f.get('scenario', f.get('task', ''))}" for f in self.failed}
     
     def is_completed(self, model: str, scenario_or_task: str) -> bool:
-        """Vérifie si une combinaison model/scenario est déjà complétée."""
+        """Check if a model/scenario combination is already completed."""
         key = f"{model}|{scenario_or_task}"
         return key in self.get_completed_keys()
     
     def add_completed(self, model: str, scenario_or_task: str, result_file: str):
-        """Marque une tâche comme complétée."""
+        """Mark a task as completed."""
         self.completed.append({
             "model": model,
             "scenario": scenario_or_task,
@@ -59,7 +59,7 @@ class CheckpointState:
         self.last_updated = datetime.now().isoformat()
     
     def add_failed(self, model: str, scenario_or_task: str, error: str):
-        """Marque une tâche comme échouée."""
+        """Mark a task as failed."""
         self.failed.append({
             "model": model,
             "scenario": scenario_or_task,
@@ -69,7 +69,7 @@ class CheckpointState:
         self.last_updated = datetime.now().isoformat()
     
     def get_remaining(self) -> list[tuple[str, str]]:
-        """Retourne les combinaisons model/scenario restantes."""
+        """Return remaining model/scenario combinations."""
         completed_keys = self.get_completed_keys()
         failed_keys = self.get_failed_keys()
         done_keys = completed_keys | failed_keys
@@ -118,12 +118,12 @@ class CheckpointState:
 
 class CheckpointManager:
     """
-    Gestionnaire de checkpoints pour les benchmarks.
+    Checkpoint manager for benchmarks.
     
-    Permet de:
-    - Sauvegarder l'état après chaque modèle/scénario
-    - Reprendre là où on s'est arrêté avec --resume
-    - Protéger contre les crashes (try/except avec sauvegarde)
+    Allows:
+    - Saving state after each model/scenario
+    - Resuming where we left off with --resume
+    - Protection against crashes (try/except with save)
     """
     
     def __init__(
@@ -146,18 +146,18 @@ class CheckpointManager:
         tasks: Optional[list[str]] = None,
     ) -> CheckpointState:
         """
-        Démarre une nouvelle expérience ou charge un checkpoint existant.
+        Start a new experiment or load an existing checkpoint.
         
         Args:
-            task_type: "performance" ou "capability"
-            models: Liste des modèles à évaluer
-            scenarios: Liste des scénarios (pour performance)
-            tasks: Liste des tâches (pour capability)
+            task_type: "performance" or "capability"
+            models: List of models to evaluate
+            scenarios: List of scenarios (for performance)
+            tasks: List of tasks (for capability)
             
         Returns:
             CheckpointState
         """
-        # Vérifier si un checkpoint existe
+        # Check if a checkpoint exists
         if self.checkpoint_file.exists():
             print(f"[Checkpoint] Found existing checkpoint: {self.checkpoint_file}")
             self.state = self.load()
@@ -170,7 +170,7 @@ class CheckpointManager:
             
             return self.state
         
-        # Créer un nouveau checkpoint
+        # Create a new checkpoint
         self.state = CheckpointState(
             experiment_id=self.experiment_id,
             task_type=task_type,
@@ -187,39 +187,39 @@ class CheckpointManager:
         return self.state
     
     def save(self):
-        """Sauvegarde le checkpoint."""
+        """Save the checkpoint."""
         if self.state:
             with open(self.checkpoint_file, "w") as f:
                 json.dump(self.state.to_dict(), f, indent=2)
     
     def load(self) -> CheckpointState:
-        """Charge un checkpoint existant."""
+        """Load an existing checkpoint."""
         with open(self.checkpoint_file) as f:
             data = json.load(f)
         return CheckpointState.from_dict(data)
     
     def mark_completed(self, model: str, scenario_or_task: str, result_file: str):
-        """Marque une tâche comme complétée et sauvegarde."""
+        """Mark a task as completed and save."""
         if self.state:
             self.state.add_completed(model, scenario_or_task, result_file)
             self.save()
             print(f"[Checkpoint] Saved: {model} / {scenario_or_task}")
     
     def mark_failed(self, model: str, scenario_or_task: str, error: str):
-        """Marque une tâche comme échouée et sauvegarde."""
+        """Mark a task as failed and save."""
         if self.state:
             self.state.add_failed(model, scenario_or_task, error)
             self.save()
             print(f"[Checkpoint] Failed (saved): {model} / {scenario_or_task} - {error[:50]}")
     
     def should_skip(self, model: str, scenario_or_task: str) -> bool:
-        """Vérifie si une tâche doit être sautée (déjà complétée)."""
+        """Check if a task should be skipped (already completed)."""
         if self.state:
             return self.state.is_completed(model, scenario_or_task)
         return False
     
     def print_summary(self):
-        """Affiche le résumé du checkpoint."""
+        """Display checkpoint summary."""
         if not self.state:
             return
         
@@ -249,17 +249,17 @@ class CheckpointManager:
         print(f"{'='*50}")
     
     def find_latest_checkpoint(self) -> Optional[Path]:
-        """Trouve le dernier checkpoint dans le dossier results."""
+        """Find the latest checkpoint in the results directory."""
         checkpoints = list(self.results_dir.glob("checkpoint_*.json"))
         if not checkpoints:
             return None
         
-        # Trier par date de modification
+        # Sort by modification date
         checkpoints.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         return checkpoints[0]
     
     def resume_latest(self) -> Optional[CheckpointState]:
-        """Reprend depuis le dernier checkpoint disponible."""
+        """Resume from the latest available checkpoint."""
         latest = self.find_latest_checkpoint()
         if latest:
             self.checkpoint_file = latest
@@ -279,19 +279,19 @@ def run_with_checkpoint(
     **kwargs,
 ) -> tuple[bool, any]:
     """
-    Exécute une fonction avec protection par checkpoint.
+    Execute a function with checkpoint protection.
     
     Args:
-        func: Fonction à exécuter
-        model: ID du modèle
-        scenario_or_task: Nom du scénario ou de la tâche
-        checkpoint_manager: Gestionnaire de checkpoint
-        **kwargs: Arguments pour la fonction
+        func: Function to execute
+        model: Model ID
+        scenario_or_task: Scenario or task name
+        checkpoint_manager: Checkpoint manager
+        **kwargs: Arguments for the function
         
     Returns:
         Tuple (success, result)
     """
-    # Vérifier si déjà complété
+    # Check if already completed
     if checkpoint_manager.should_skip(model, scenario_or_task):
         print(f"[Skip] {model}/{scenario_or_task} already completed")
         return True, None
@@ -300,7 +300,7 @@ def run_with_checkpoint(
         print(f"\n[Running] {model} / {scenario_or_task}")
         result = func(**kwargs)
         
-        # Marquer comme complété
+        # Mark as completed
         result_file = f"result_{model.replace('/', '_')}_{scenario_or_task}.json"
         checkpoint_manager.mark_completed(model, scenario_or_task, result_file)
         

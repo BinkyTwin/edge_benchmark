@@ -2,9 +2,9 @@
 Coding Evaluation Module
 ========================
 
-Mini-test de codage avec HumanEval (subset).
-Objectif: vérifier si les SLMs peuvent assister sur des tâches
-de scripting/automatisation basiques.
+Mini coding test with HumanEval (subset).
+Objective: verify if SLMs can assist with basic 
+scripting/automation tasks.
 """
 
 import json
@@ -23,16 +23,16 @@ from ..lmstudio_client import LMStudioClient, format_messages
 
 @dataclass
 class CodingResult:
-    """Résultat d'une évaluation de codage."""
+    """Result of a coding evaluation."""
     
     model_id: str
     dataset_name: str
     
-    # Métriques principales
+    # Main metrics
     pass_at_1: float = 0.0
     syntax_valid_rate: float = 0.0
     
-    # Détails
+    # Details
     num_samples: int = 0
     num_passed: int = 0
     num_syntax_valid: int = 0
@@ -41,7 +41,7 @@ class CodingResult:
     avg_latency_ms: float = 0.0
     total_time_seconds: float = 0.0
     
-    # Métadonnées
+    # Metadata
     timestamp: str = ""
     results: list = field(default_factory=list)
     
@@ -62,10 +62,10 @@ class CodingResult:
 
 class CodingEvaluator:
     """
-    Évaluateur pour les tâches de génération de code.
+    Evaluator for code generation tasks.
     
-    Utilise HumanEval (subset) pour évaluer les capacités
-    de codage des SLMs.
+    Uses HumanEval (subset) to evaluate coding
+    capabilities of SLMs.
     """
     
     def __init__(
@@ -85,14 +85,14 @@ class CodingEvaluator:
         seed: int = 42,
     ) -> list[dict]:
         """
-        Charge un subset de HumanEval.
+        Load a subset of HumanEval.
         
         Args:
-            sample_size: Nombre de problèmes à charger
-            seed: Seed pour le sampling
+            sample_size: Number of problems to load
+            seed: Seed for sampling
             
         Returns:
-            Liste de problèmes
+            List of problems
         """
         import random
         
@@ -103,10 +103,10 @@ class CodingEvaluator:
             cache_dir=self.cache_dir,
         )
         
-        # Convertir en liste
+        # Convert to list
         samples = list(dataset)
         
-        # Sélectionner un subset
+        # Select a subset
         if sample_size and sample_size < len(samples):
             random.seed(seed)
             samples = random.sample(samples, sample_size)
@@ -121,15 +121,15 @@ class CodingEvaluator:
         progress_bar: bool = True,
     ) -> CodingResult:
         """
-        Évalue un modèle sur HumanEval (subset).
+        Evaluate a model on HumanEval (subset).
         
         Args:
-            model_id: ID du modèle LM Studio
-            sample_size: Nombre de problèmes
-            progress_bar: Afficher la progression
+            model_id: LM Studio model ID
+            sample_size: Number of problems
+            progress_bar: Display progress
             
         Returns:
-            CodingResult avec métriques
+            CodingResult with metrics
         """
         print(f"\n{'='*60}")
         print(f"HUMANEVAL EVALUATION (Mini)")
@@ -172,16 +172,16 @@ Ensure the code is syntactically correct."""
             
             completion = result.content if result.success else ""
             
-            # Nettoyer la complétion
+            # Clean completion
             completion = self._clean_completion(completion, prompt)
             
-            # Vérifier la syntaxe
+            # Check syntax
             full_code = prompt + completion
             is_syntax_valid = self._check_syntax(full_code)
             if is_syntax_valid:
                 syntax_valid += 1
             
-            # Exécuter les tests (si la syntaxe est valide)
+            # Run tests (if syntax is valid)
             test_passed = False
             error_msg = None
             
@@ -197,7 +197,7 @@ Ensure the code is syntactically correct."""
             results.append({
                 "task_id": sample["task_id"],
                 "entry_point": entry_point,
-                "completion": completion[:200],  # Tronquer pour le log
+                "completion": completion[:200],  # Truncate for log
                 "syntax_valid": is_syntax_valid,
                 "test_passed": test_passed,
                 "error": error_msg,
@@ -224,16 +224,16 @@ Ensure the code is syntactically correct."""
         return coding_result
     
     def _clean_completion(self, completion: str, prompt: str) -> str:
-        """Nettoie la complétion du modèle."""
-        # Supprimer les marqueurs de code markdown
+        """Clean model completion."""
+        # Remove markdown code markers
         completion = re.sub(r'```python\s*', '', completion)
         completion = re.sub(r'```\s*', '', completion)
         
-        # Supprimer le prompt s'il est répété
+        # Remove prompt if repeated
         if prompt.strip() in completion:
             completion = completion.replace(prompt.strip(), "")
         
-        # Supprimer les définitions de fonction dupliquées
+        # Remove duplicate function definitions
         lines = completion.split('\n')
         cleaned_lines = []
         for line in lines:
@@ -244,7 +244,7 @@ Ensure the code is syntactically correct."""
         return '\n'.join(cleaned_lines)
     
     def _check_syntax(self, code: str) -> bool:
-        """Vérifie si le code est syntaxiquement valide."""
+        """Check if code is syntactically valid."""
         try:
             compile(code, '<string>', 'exec')
             return True
@@ -259,15 +259,15 @@ Ensure the code is syntactically correct."""
         timeout: float = 5.0,
     ) -> tuple[bool, Optional[str]]:
         """
-        Exécute les tests sur le code généré.
+        Run tests on generated code.
         
-        Note: Exécution dans un environnement limité.
+        Note: Execution in a restricted environment.
         
         Args:
-            code: Code complet (prompt + complétion)
-            test_code: Code de test
-            entry_point: Nom de la fonction
-            timeout: Timeout en secondes
+            code: Full code (prompt + completion)
+            test_code: Test code
+            entry_point: Function name
+            timeout: Timeout in seconds
             
         Returns:
             Tuple (passed, error_message)
@@ -277,15 +277,15 @@ Ensure the code is syntactically correct."""
         def timeout_handler(signum, frame):
             raise TimeoutError("Execution timed out")
         
-        # Préparer le code complet
+        # Prepare full code
         full_code = f"{code}\n\n{test_code}\n\ncheck({entry_point})"
         
         try:
-            # Définir un timeout
+            # Set timeout
             signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(int(timeout))
             
-            # Créer un environnement d'exécution restreint
+            # Create restricted execution environment
             exec_globals = {
                 "__builtins__": {
                     "range": range,
@@ -313,7 +313,7 @@ Ensure the code is syntactically correct."""
                     "isinstance": isinstance,
                     "type": type,
                     "round": round,
-                    "print": lambda *args, **kwargs: None,  # Silencer print
+                    "print": lambda *args, **kwargs: None,  # Silence print
                     "AssertionError": AssertionError,
                     "ValueError": ValueError,
                     "TypeError": TypeError,
@@ -326,7 +326,7 @@ Ensure the code is syntactically correct."""
             }
             
             exec(full_code, exec_globals)
-            signal.alarm(0)  # Annuler le timeout
+            signal.alarm(0)  # Cancel timeout
             return True, None
             
         except TimeoutError:
@@ -339,7 +339,7 @@ Ensure the code is syntactically correct."""
             return False, f"{type(e).__name__}: {e}"
     
     def save_result(self, result: CodingResult, filename: Optional[str] = None):
-        """Sauvegarde le résultat."""
+        """Save result."""
         if filename is None:
             model_name = result.model_id.replace("/", "_")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -353,7 +353,7 @@ Ensure the code is syntactically correct."""
         print(f"\n[Saved] Results saved to {filepath}")
     
     def _print_results(self, result: CodingResult):
-        """Affiche les résultats."""
+        """Display results."""
         print(f"\n{'─'*40}")
         print("RESULTS")
         print(f"{'─'*40}")

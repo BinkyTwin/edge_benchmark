@@ -1,17 +1,17 @@
 # Edge SLM Benchmark - Sampling Parameters Configuration
-# Paramètres d'échantillonnage standardisés pour reproductibilité
+# Standardized sampling parameters for reproducibility
 
-# === PARAMÈTRES PAR DÉFAUT (BENCHMARK) ===
-# Pour les tâches de benchmark: déterministe
+# === DEFAULT BENCHMARK PARAMETERS ===
+# For benchmark tasks: deterministic
 benchmark_defaults:
-  temperature: 0            # Déterministe
-  top_p: 1                  # Pas de nucleus sampling
-  top_k: -1                 # Désactivé
+  temperature: 0            # Deterministic
+  top_p: 1                  # No nucleus sampling
+  top_k: -1                 # Disabled
   frequency_penalty: 0
   presence_penalty: 0
-  seed: 42                  # Reproductibilité
+  seed: 42                  # Reproducibility
 
-# === PARAMÈTRES PAR TYPE DE TÂCHE ===
+# === TASK-SPECIFIC PARAMETERS ===
 task_specific:
   # Classification (Banking77, Sentiment)
   classification:
@@ -20,14 +20,14 @@ task_specific:
     max_tokens: 50
     stop_sequences: ["\n", ".", ","]
     
-  # Génération de texte (Résumé, FAQ)
+  # Text generation (Summary, FAQ)
   generation:
     temperature: 0
     top_p: 1
     max_tokens: 512
     stop_sequences: []
     
-  # Sortie JSON structurée
+  # Structured JSON output
   structured_output:
     temperature: 0
     top_p: 1
@@ -35,7 +35,7 @@ task_specific:
     response_format:
       type: "json_object"
       
-  # Génération de code
+  # Code generation
   code_generation:
     temperature: 0
     top_p: 1
@@ -47,20 +47,20 @@ task_specific:
       - "\n#"
       - "\n\n\n"
       
-  # QA extractif
+  # Extractive QA
   question_answering:
     temperature: 0
     top_p: 1
     max_tokens: 200
     stop_sequences: ["\n\n"]
 
-# === PARAMÈTRES PAR SCÉNARIO DE PERFORMANCE ===
+# === PERFORMANCE SCENARIO PARAMETERS ===
 performance_scenarios:
   interactive_assistant:
     temperature: 0
     top_p: 1
     max_tokens: 128
-    stream: true            # Streaming pour mesure TTFT
+    stream: true            # Streaming for TTFT measurement
     
   long_form_summarization:
     temperature: 0
@@ -78,19 +78,19 @@ performance_scenarios:
 
 # === CONTEXT WINDOW SETTINGS ===
 context_settings:
-  # Context effectif standardisé pour comparaison équitable
+  # Standardized effective context for fair comparison
   effective_context: 8192
   
-  # Marges de sécurité
-  input_margin: 512         # Tokens réservés pour le prompt système
-  output_margin: 512        # Tokens réservés pour la réponse
+  # Safety margins
+  input_margin: 512         # Tokens reserved for system prompt
+  output_margin: 512        # Tokens reserved for response
 
-# === NOTES MÉTHODOLOGIQUES ===
+# === METHODOLOGY NOTES ===
 methodology_notes:
-  - "temperature=0 pour reproductibilité des benchmarks"
-  - "top_p=1 pour éviter le nucleus sampling"
-  - "seed=42 fixé quand supporté par le modèle"
-  - "Tous les modèles utilisent les mêmes paramètres pour comparaison équitable"
-  - "Les paramètres peuvent être ajustés pour tests de sensibilité"
+  - "temperature=0 for benchmark reproducibility"
+  - "top_p=1 to avoid nucleus sampling"
+  - "seed=42 fixed when supported by the model"
+  - "All models use the same parameters for fair comparison"
+  - "Parameters can be adjusted for sensitivity tests"
 
 

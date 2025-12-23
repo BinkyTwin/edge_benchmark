@@ -2,11 +2,11 @@
 Banking Evaluation Module
 =========================
 
-Évaluation sur les datasets bancaires:
-- Banking77: Classification d'intents (77 classes)
-- Financial PhraseBank: Analyse de sentiment (3 classes)
+Evaluation on banking datasets:
+- Banking77: Intent classification (77 classes)
+- Financial PhraseBank: Sentiment analysis (3 classes)
 
-Ce module est le FOCUS PRINCIPAL du benchmark.
+This module is the primary focus of the benchmark.
 """
 
 import json
@@ -59,34 +59,34 @@ SENTIMENT_LABELS = ["positive", "negative", "neutral"]
 
 @dataclass
 class EvaluationResult:
-    """Résultat d'une évaluation."""
+    """Result of an evaluation."""
     
     dataset_name: str
     model_id: str
     
-    # Métriques principales
+    # Main metrics
     accuracy: float = 0.0
     macro_f1: float = 0.0
     weighted_f1: float = 0.0
     
-    # Détails
+    # Details
     num_samples: int = 0
     num_correct: int = 0
     
-    # Par classe (optionnel)
+    # Per-class (optional)
     per_class_accuracy: dict = field(default_factory=dict)
     confusion_matrix: list = field(default_factory=list)
     
-    # Métriques de performance
+    # Performance metrics
     avg_latency_ms: float = 0.0
     total_time_seconds: float = 0.0
     
-    # Métadonnées
+    # Metadata
     timestamp: str = ""
     errors: list = field(default_factory=list)
     
     def to_dict(self) -> dict:
-        """Convertit en dictionnaire."""
+        """Convert to dictionary."""
         return {
             "dataset_name": self.dataset_name,
             "model_id": self.model_id,
@@ -105,9 +105,9 @@ class EvaluationResult:
 
 class BankingEvaluator:
     """
-    Évaluateur pour les tâches banking.
+    Evaluator for banking tasks.
     
-    Supporte Banking77 (intent classification) et 
+    Supports Banking77 (intent classification) and 
     Financial PhraseBank (sentiment analysis).
     """
     
@@ -119,9 +119,9 @@ class BankingEvaluator:
     ):
         """
         Args:
-            client: Client LM Studio
-            results_dir: Dossier pour les résultats
-            cache_dir: Dossier cache pour les datasets
+            client: LM Studio client
+            results_dir: Directory for results
+            cache_dir: Cache directory for datasets
         """
         self.client = client
         self.results_dir = results_dir or Path("results")
@@ -135,18 +135,18 @@ class BankingEvaluator:
         seed: int = 42,
     ) -> list[dict]:
         """
-        Charge le dataset Banking77.
+        Load the Banking77 dataset.
         
         Args:
-            split: Split à charger ('train' ou 'test')
-            sample_size: Nombre d'échantillons (None = tout)
-            seed: Seed pour le sampling
+            split: Split to load ('train' or 'test')
+            sample_size: Number of samples (None = all)
+            seed: Seed for sampling
             
         Returns:
-            Liste de dictionnaires avec 'text' et 'label'
+            List of dictionaries with 'text' and 'label'
         """
         print(f"[Banking77] Loading {split} split...")
-        # Utiliser mteb/banking77 (format Parquet, pas de script requis)
+        # Using mteb/banking77 (Parquet format, no script required)
         # Source: https://huggingface.co/datasets/mteb/banking77
         dataset = load_dataset(
             "mteb/banking77",
@@ -175,34 +175,34 @@ class BankingEvaluator:
         seed: int = 42,
     ) -> list[dict]:
         """
-        Charge le dataset Financial PhraseBank via ChanceFocus/flare-fpb.
+        Load the Financial PhraseBank dataset via ChanceFocus/flare-fpb.
         
-        Note: Le dataset original takala/financial_phrasebank utilise un script
-        legacy qui n'est plus supporté. On utilise la version ChanceFocus/flare-fpb
-        qui contient les mêmes données en format Parquet moderne.
+        Note: The original takala/financial_phrasebank dataset uses a legacy script
+        that is no longer supported. We use ChanceFocus/flare-fpb which contains
+        the same data in modern Parquet format.
         
         Args:
-            sample_size: Nombre d'échantillons
-            seed: Seed pour le sampling
+            sample_size: Number of samples
+            seed: Seed for sampling
             
         Returns:
-            Liste de dictionnaires avec 'text' et 'label'
+            List of dictionaries with 'text' and 'label'
         """
         print(f"[FinancialPhraseBank] Loading dataset (via ChanceFocus/flare-fpb)...")
         
-        # Utiliser flare-fpb (format moderne) au lieu de takala/financial_phrasebank (script legacy)
-        # flare-fpb contient les mêmes données Financial PhraseBank
+        # Using flare-fpb (modern format) instead of takala/financial_phrasebank (legacy script)
+        # flare-fpb contains the same Financial PhraseBank data
         dataset = load_dataset(
             "ChanceFocus/flare-fpb",
-            split="test",  # Utiliser le split test pour l'évaluation
+            split="test",  # Using test split for evaluation
             cache_dir=self.cache_dir,
         )
         
-        # flare-fpb a les champs: text, answer (positive/negative/neutral)
+        # flare-fpb has fields: text, answer (positive/negative/neutral)
         samples = []
         for item in dataset:
             label = item.get("answer", "neutral")
-            # Mapper le label en ID
+            # Map label to ID
             label_id_map = {"negative": 0, "neutral": 1, "positive": 2}
             samples.append({
                 "text": item["text"],
@@ -225,26 +225,26 @@ class BankingEvaluator:
         progress_bar: bool = True,
     ) -> EvaluationResult:
         """
-        Évalue un modèle sur Banking77.
+        Evaluate a model on Banking77.
         
         Args:
-            model_id: ID du modèle LM Studio
-            sample_size: Nombre d'échantillons (None = tout le test set)
-            few_shot: Nombre d'exemples few-shot
-            progress_bar: Afficher la barre de progression
+            model_id: LM Studio model ID
+            sample_size: Number of samples (None = full test set)
+            few_shot: Number of few-shot examples
+            progress_bar: Display progress bar
             
         Returns:
-            EvaluationResult avec métriques
+            EvaluationResult with metrics
         """
         print(f"\n{'='*60}")
         print(f"BANKING77 EVALUATION")
         print(f"Model: {model_id}")
         print(f"{'='*60}")
         
-        # Charger les données
+        # Load data
         samples = self.load_banking77(split="test", sample_size=sample_size)
         
-        # Préparer le prompt système
+        # Prepare system prompt
         system_prompt = """You are a banking intent classifier. 
 Given a customer query, identify the intent category from the following list:
 
@@ -254,7 +254,7 @@ Respond with ONLY the intent category name, nothing else.""".format(
             labels=", ".join(BANKING77_LABELS)
         )
         
-        # Évaluation
+        # Evaluation
         predictions = []
         ground_truth = []
         latencies = []
@@ -292,12 +292,12 @@ Respond with ONLY the intent category name, nothing else.""".format(
         
         total_time = time.time() - start_time
         
-        # Calculer les métriques
+        # Calculate metrics
         accuracy = accuracy_score(ground_truth, predictions)
         macro_f1 = f1_score(ground_truth, predictions, average="macro", zero_division=0)
         weighted_f1 = f1_score(ground_truth, predictions, average="weighted", zero_division=0)
         
-        # Accuracy par classe
+        # Per-class accuracy
         per_class = self._compute_per_class_accuracy(ground_truth, predictions)
         
         result = EvaluationResult(
@@ -325,30 +325,30 @@ Respond with ONLY the intent category name, nothing else.""".format(
         progress_bar: bool = True,
     ) -> EvaluationResult:
         """
-        Évalue un modèle sur Financial PhraseBank.
+        Evaluate a model on Financial PhraseBank.
         
         Args:
-            model_id: ID du modèle LM Studio
-            sample_size: Nombre d'échantillons
-            progress_bar: Afficher la barre de progression
+            model_id: LM Studio model ID
+            sample_size: Number of samples
+            progress_bar: Display progress bar
             
         Returns:
-            EvaluationResult avec métriques
+            EvaluationResult with metrics
         """
         print(f"\n{'='*60}")
         print(f"FINANCIAL PHRASEBANK EVALUATION")
         print(f"Model: {model_id}")
         print(f"{'='*60}")
         
-        # Charger les données
+        # Load data
         samples = self.load_financial_phrasebank(sample_size=sample_size)
         
-        # Préparer le prompt système
+        # Prepare system prompt
         system_prompt = """You are a financial sentiment analyzer.
 Analyze the sentiment of financial news sentences.
 Respond with exactly one word: positive, negative, or neutral."""
         
-        # Évaluation
+        # Evaluation
         predictions = []
         ground_truth = []
         latencies = []
@@ -386,7 +386,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         
         total_time = time.time() - start_time
         
-        # Calculer les métriques
+        # Calculate metrics
         accuracy = accuracy_score(ground_truth, predictions)
         macro_f1 = f1_score(ground_truth, predictions, average="macro", zero_division=0)
         weighted_f1 = f1_score(ground_truth, predictions, average="weighted", zero_division=0)
@@ -394,7 +394,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         # Confusion matrix
         cm = confusion_matrix(ground_truth, predictions, labels=SENTIMENT_LABELS)
         
-        # Accuracy par classe
+        # Per-class accuracy
         per_class = self._compute_per_class_accuracy(ground_truth, predictions)
         
         result = EvaluationResult(
@@ -425,15 +425,15 @@ Respond with exactly one word: positive, negative, or neutral."""
         phrasebank_samples: int = 1000,
     ) -> dict[str, EvaluationResult]:
         """
-        Évalue un modèle sur tous les datasets banking.
+        Evaluate a model on all banking datasets.
         
         Args:
-            model_id: ID du modèle
-            banking77_samples: Nombre d'échantillons Banking77
-            phrasebank_samples: Nombre d'échantillons PhraseBank
+            model_id: Model ID
+            banking77_samples: Number of Banking77 samples
+            phrasebank_samples: Number of PhraseBank samples
             
         Returns:
-            Dictionnaire dataset_name -> EvaluationResult
+            Dictionary dataset_name -> EvaluationResult
         """
         results = {}
         
@@ -454,15 +454,15 @@ Respond with exactly one word: positive, negative, or neutral."""
         return results
     
     def _parse_banking77_prediction(self, content: str) -> str:
-        """Parse la prédiction Banking77."""
+        """Parse Banking77 prediction."""
         content = content.strip().lower()
         
-        # Chercher une correspondance exacte
+        # Look for exact match
         for label in BANKING77_LABELS:
             if label.lower() in content:
                 return label
         
-        # Chercher une correspondance partielle
+        # Look for partial match
         content_words = set(content.replace("_", " ").split())
         best_match = None
         best_score = 0
@@ -477,14 +477,14 @@ Respond with exactly one word: positive, negative, or neutral."""
         return best_match or "unknown"
     
     def _parse_sentiment_prediction(self, content: str) -> str:
-        """Parse la prédiction de sentiment."""
+        """Parse sentiment prediction."""
         content = content.strip().lower()
         
         for label in SENTIMENT_LABELS:
             if label in content:
                 return label
         
-        # Fallback: chercher des synonymes
+        # Fallback: look for synonyms
         if any(word in content for word in ["good", "great", "increase", "growth", "profit"]):
             return "positive"
         elif any(word in content for word in ["bad", "poor", "decrease", "loss", "decline"]):
@@ -497,7 +497,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         ground_truth: list[str],
         predictions: list[str],
     ) -> dict[str, float]:
-        """Calcule l'accuracy par classe."""
+        """Compute per-class accuracy."""
         per_class = {}
         
         for label in set(ground_truth):
@@ -511,7 +511,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         return per_class
     
     def save_result(self, result: EvaluationResult, filename: Optional[str] = None):
-        """Sauvegarde un résultat."""
+        """Save a result."""
         if filename is None:
             model_name = result.model_id.replace("/", "_")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -525,7 +525,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         print(f"\n[Saved] Results saved to {filepath}")
     
     def _print_results(self, result: EvaluationResult):
-        """Affiche les résultats."""
+        """Display results."""
         print(f"\n{'─'*40}")
         print("RESULTS")
         print(f"{'─'*40}")
@@ -539,7 +539,7 @@ Respond with exactly one word: positive, negative, or neutral."""
         print(f"{'─'*40}")
     
     def _print_confusion_matrix(self, cm, labels: list[str]):
-        """Affiche la matrice de confusion."""
+        """Display confusion matrix."""
         print(f"\nConfusion Matrix:")
         print(f"{'':>12}", end="")
         for label in labels:

@@ -2,11 +2,11 @@
 Reproducibility Module
 ======================
 
-Gestion de la reproductibilité scientifique:
-- Seed global et déterminisme
-- Capture de l'environnement (OS, hardware, versions)
-- Sérialisation des configurations
-- Protocole de reproductibilité
+Scientific reproducibility management:
+- Global seed and determinism
+- Environment capture (OS, hardware, versions)
+- Configuration serialization
+- Reproducibility protocol
 """
 
 import hashlib
@@ -26,7 +26,7 @@ import numpy as np
 
 @dataclass
 class HardwareInfo:
-    """Informations sur le hardware."""
+    """Hardware information."""
     
     machine: str = ""
     processor: str = ""
@@ -34,13 +34,13 @@ class HardwareInfo:
     cpu_brand: str = ""
     memory_gb: float = 0.0
     
-    # Apple Silicon spécifique
+    # Apple Silicon specific
     apple_silicon: bool = False
     chip_model: str = ""  # M1, M2, M3, etc.
     
     @classmethod
     def capture(cls) -> "HardwareInfo":
-        """Capture les informations hardware."""
+        """Captures hardware information."""
         import psutil
         
         info = cls(
@@ -50,7 +50,7 @@ class HardwareInfo:
             memory_gb=psutil.virtual_memory().total / (1024**3),
         )
         
-        # Détecter Apple Silicon
+        # Detect Apple Silicon
         if platform.system() == "Darwin" and platform.machine() == "arm64":
             info.apple_silicon = True
             try:
@@ -62,7 +62,7 @@ class HardwareInfo:
             except Exception:
                 info.chip_model = "Apple Silicon (unknown)"
         
-        # CPU brand pour x86
+        # CPU brand for x86
         if not info.apple_silicon:
             try:
                 result = subprocess.run(
@@ -78,14 +78,14 @@ class HardwareInfo:
 
 @dataclass
 class SoftwareInfo:
-    """Informations sur l'environnement logiciel."""
+    """Software environment information."""
     
     os_name: str = ""
     os_version: str = ""
     os_release: str = ""
     python_version: str = ""
     
-    # Versions des packages clés
+    # Key package versions
     package_versions: dict = field(default_factory=dict)
     
     # LM Studio
@@ -94,7 +94,7 @@ class SoftwareInfo:
     
     @classmethod
     def capture(cls, lmstudio_client=None) -> "SoftwareInfo":
-        """Capture les informations logicielles."""
+        """Captures software information."""
         info = cls(
             os_name=platform.system(),
             os_version=platform.version(),
@@ -102,7 +102,7 @@ class SoftwareInfo:
             python_version=sys.version,
         )
         
-        # Versions des packages clés
+        # Key package versions
         packages_to_check = [
             "openai", "httpx", "datasets", "pandas", "numpy",
             "scikit-learn", "psutil", "lm-eval", "tqdm"
@@ -115,10 +115,10 @@ class SoftwareInfo:
             except Exception:
                 info.package_versions[pkg] = "not installed"
         
-        # LM Studio version (si client fourni)
+        # LM Studio version (if client provided)
         if lmstudio_client:
             try:
-                # Tenter de récupérer la version via l'API
+                # Attempt to retrieve version via API
                 response = lmstudio_client.http_client.get("/api/version")
                 if response.status_code == 200:
                     data = response.json()
@@ -131,9 +131,9 @@ class SoftwareInfo:
 
 @dataclass
 class ExperimentConfig:
-    """Configuration complète d'une expérience."""
+    """Complete experiment configuration."""
     
-    # Identifiants
+    # Identifiers
     experiment_id: str = ""
     experiment_name: str = ""
     timestamp: str = ""
@@ -147,16 +147,16 @@ class ExperimentConfig:
     hardware: HardwareInfo = field(default_factory=HardwareInfo)
     software: SoftwareInfo = field(default_factory=SoftwareInfo)
     
-    # Configurations du benchmark
+    # Benchmark configurations
     benchmark_config: dict = field(default_factory=dict)
     model_configs: dict = field(default_factory=dict)
     sampling_params: dict = field(default_factory=dict)
     
-    # Hash pour vérification d'intégrité
+    # Hash for integrity verification
     config_hash: str = ""
     
     def compute_hash(self) -> str:
-        """Calcule un hash de la configuration pour vérification."""
+        """Computes a configuration hash for verification."""
         config_str = json.dumps({
             "global_seed": self.global_seed,
             "benchmark_config": self.benchmark_config,
@@ -166,7 +166,7 @@ class ExperimentConfig:
         return hashlib.sha256(config_str.encode()).hexdigest()[:16]
     
     def to_dict(self) -> dict:
-        """Convertit en dictionnaire sérialisable."""
+        """Converts to serializable dictionary."""
         return {
             "experiment_id": self.experiment_id,
             "experiment_name": self.experiment_name,
@@ -187,13 +187,13 @@ class ExperimentConfig:
 
 class ReproducibilityManager:
     """
-    Gestionnaire de reproductibilité scientifique.
+    Scientific reproducibility manager.
     
-    Assure:
-    - Déterminisme via seeds globaux
-    - Capture complète de l'environnement
-    - Sérialisation des configurations
-    - Protocole de reproductibilité documenté
+    Ensures:
+    - Determinism via global seeds
+    - Complete environment capture
+    - Configuration serialization
+    - Documented reproducibility protocol
     """
     
     def __init__(
@@ -204,9 +204,9 @@ class ReproducibilityManager:
     ):
         """
         Args:
-            seed: Seed global pour reproductibilité
-            experiment_name: Nom de l'expérience
-            output_dir: Dossier de sortie
+            seed: Global seed for reproducibility
+            experiment_name: Experiment name
+            output_dir: Output directory
         """
         self.seed = seed
         self.experiment_name = experiment_name
@@ -217,9 +217,9 @@ class ReproducibilityManager:
     
     def set_global_seed(self, seed: Optional[int] = None):
         """
-        Définit le seed global pour reproductibilité.
+        Sets the global seed for reproducibility.
         
-        Affecte:
+        Affects:
         - random (Python stdlib)
         - numpy.random
         - os.environ PYTHONHASHSEED
@@ -232,7 +232,7 @@ class ReproducibilityManager:
         # NumPy
         np.random.seed(seed)
         
-        # Hash seed (pour reproductibilité des dicts, etc.)
+        # Hash seed (for dict reproducibility, etc.)
         os.environ["PYTHONHASHSEED"] = str(seed)
         
         print(f"[Reproducibility] Global seed set to {seed}")
@@ -241,13 +241,13 @@ class ReproducibilityManager:
     
     def capture_environment(self, lmstudio_client=None) -> ExperimentConfig:
         """
-        Capture l'environnement complet de l'expérience.
+        Captures the complete experiment environment.
         
         Args:
-            lmstudio_client: Client LM Studio pour récupérer sa version
+            lmstudio_client: LM Studio client to retrieve its version
             
         Returns:
-            ExperimentConfig complet
+            Complete ExperimentConfig
         """
         timestamp = datetime.now().isoformat()
         experiment_id = f"{self.experiment_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -275,12 +275,12 @@ class ReproducibilityManager:
         sampling_config_path: Optional[Path] = None,
     ):
         """
-        Charge et intègre les configurations YAML.
+        Loads and integrates YAML configurations.
         
         Args:
-            models_config_path: Chemin vers models.yaml
-            scenarios_config_path: Chemin vers scenarios.yaml
-            sampling_config_path: Chemin vers sampling_params.yaml
+            models_config_path: Path to models.yaml
+            scenarios_config_path: Path to scenarios.yaml
+            sampling_config_path: Path to sampling_params.yaml
         """
         import yaml
         
@@ -299,18 +299,18 @@ class ReproducibilityManager:
             with open(sampling_config_path) as f:
                 self.config.sampling_params = yaml.safe_load(f)
         
-        # Recalculer le hash
+        # Recompute the hash
         self.config.config_hash = self.config.compute_hash()
     
     def save_experiment_config(self, filename: Optional[str] = None) -> Path:
         """
-        Sauvegarde la configuration complète de l'expérience.
+        Saves the complete experiment configuration.
         
         Args:
-            filename: Nom du fichier (auto-généré si None)
+            filename: Filename (auto-generated if None)
             
         Returns:
-            Chemin du fichier sauvegardé
+            Path of the saved file
         """
         if self.config is None:
             self.capture_environment()
@@ -328,10 +328,10 @@ class ReproducibilityManager:
     
     def generate_reproducibility_report(self) -> str:
         """
-        Génère un rapport de reproductibilité pour le papier.
+        Generates a reproducibility report for the paper.
         
         Returns:
-            Texte Markdown du rapport
+            Markdown text of the report
         """
         if self.config is None:
             self.capture_environment()
@@ -393,7 +393,7 @@ This hash can be used to verify that the exact same configuration was used.
         return report
     
     def print_environment_summary(self):
-        """Affiche un résumé de l'environnement."""
+        """Prints an environment summary."""
         if self.config is None:
             self.capture_environment()
         
@@ -419,15 +419,15 @@ This hash can be used to verify that the exact same configuration was used.
 
 def set_deterministic_mode(seed: int = 42) -> ReproducibilityManager:
     """
-    Configure le mode déterministe global.
+    Configures global deterministic mode.
     
-    Fonction utilitaire pour une configuration rapide.
+    Utility function for quick setup.
     
     Args:
-        seed: Seed global
+        seed: Global seed
         
     Returns:
-        ReproducibilityManager configuré
+        Configured ReproducibilityManager
     """
     manager = ReproducibilityManager(seed=seed)
     manager.set_global_seed()

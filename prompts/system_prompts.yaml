@@ -1,7 +1,7 @@
-# System Prompts Standardisés
-# Prompts système pour différents scénarios
+# Standardized System Prompts
+# System prompts for different scenarios
 
-# === PROMPTS GÉNÉRIQUES ===
+# === GENERIC PROMPTS ===
 generic:
   banking_assistant: |
     You are a helpful banking assistant. Provide accurate, concise, and professional responses to customer inquiries. Follow banking regulations and never disclose sensitive information.
@@ -46,7 +46,7 @@ financial_phrasebank:
     - sentence: "The board will meet next week to discuss the proposal."
       sentiment: "neutral"
 
-# === PROMPTS CODAGE ===
+# === CODING PROMPTS ===
 coding:
   system: |
     You are an expert Python programmer. Complete the given function according to its docstring.
@@ -76,7 +76,7 @@ summarization:
   format_instructions: |
     Provide a concise summary in 2-3 paragraphs.
 
-# === PROMPTS FAQ BANKING ===
+# === BANKING FAQ PROMPTS ===
 banking_faq:
   system: |
     You are a helpful banking customer service assistant. Answer customer questions accurately and professionally.

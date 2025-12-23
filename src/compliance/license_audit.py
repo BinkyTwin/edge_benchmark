@@ -2,8 +2,8 @@
 License Audit Module
 ====================
 
-Audit des licences des modèles utilisés.
-Vérifie la conformité avec les termes d'utilisation.
+Audit of licenses for models used.
+Verifies compliance with terms of use.
 """
 
 import json
@@ -15,7 +15,7 @@ from typing import Optional
 
 
 class LicenseType(Enum):
-    """Types de licences."""
+    """License types."""
     APACHE_2_0 = "Apache 2.0"
     MIT = "MIT"
     CUSTOM = "Custom/Proprietary"
@@ -25,7 +25,7 @@ class LicenseType(Enum):
 
 
 class CommercialUse(Enum):
-    """Autorisation d'usage commercial."""
+    """Commercial use authorization."""
     ALLOWED = "allowed"
     RESTRICTED = "restricted"
     PROHIBITED = "prohibited"
@@ -34,14 +34,14 @@ class CommercialUse(Enum):
 
 @dataclass
 class LicenseInfo:
-    """Informations sur la licence d'un modèle."""
+    """License information for a model."""
     
     model_name: str
     publisher: str
     license_type: LicenseType
     license_url: str
     
-    # Autorisations
+    # Authorizations
     commercial_use: CommercialUse
     modification_allowed: bool
     redistribution_allowed: bool
@@ -53,7 +53,7 @@ class LicenseInfo:
     # Notes
     notes: str = ""
     
-    # Vérification
+    # Verification
     verified: bool = False
     verified_date: Optional[str] = None
     verified_by: Optional[str] = None
@@ -76,7 +76,7 @@ class LicenseInfo:
         }
 
 
-# === LICENCES DES MODÈLES DU BENCHMARK ===
+# === BENCHMARK MODEL LICENSES ===
 
 MODEL_LICENSES = {
     "gemma-3n-e4b": LicenseInfo(
@@ -144,10 +144,10 @@ MODEL_LICENSES = {
 
 class LicenseAuditor:
     """
-    Auditeur de licences pour les modèles du benchmark.
+    License auditor for benchmark models.
     
-    Vérifie la conformité des modèles avec les exigences
-    de l'environnement bancaire réglementé.
+    Verifies model compliance with requirements
+    of the regulated banking environment.
     """
     
     def __init__(self, output_dir: Optional[Path] = None):
@@ -156,19 +156,19 @@ class LicenseAuditor:
         self.licenses = MODEL_LICENSES.copy()
     
     def get_license(self, model_key: str) -> Optional[LicenseInfo]:
-        """Récupère les informations de licence d'un modèle."""
+        """Retrieves license information for a model."""
         return self.licenses.get(model_key)
     
     def add_license(self, model_key: str, license_info: LicenseInfo):
-        """Ajoute une licence au registre."""
+        """Adds a license to the registry."""
         self.licenses[model_key] = license_info
     
     def check_commercial_use(self, model_key: str) -> dict:
         """
-        Vérifie si un modèle peut être utilisé commercialement.
+        Checks if a model can be used commercially.
         
         Returns:
-            Dictionnaire avec statut et détails
+            Dictionary with status and details
         """
         license_info = self.get_license(model_key)
         
@@ -202,9 +202,9 @@ class LicenseAuditor:
     
     def check_banking_compatibility(self, model_key: str) -> dict:
         """
-        Vérifie la compatibilité d'un modèle pour usage bancaire.
+        Checks model compatibility for banking use.
         
-        Prend en compte les restrictions spécifiques au secteur régulé.
+        Takes into account restrictions specific to the regulated sector.
         """
         license_info = self.get_license(model_key)
         
@@ -220,7 +220,7 @@ class LicenseAuditor:
         recommendations = []
         risk_level = "low"
         
-        # Vérifier le type de licence
+        # Check license type
         if license_info.license_type == LicenseType.CUSTOM:
             issues.append("Custom license requires legal review")
             recommendations.append("Have legal team review license terms")
@@ -231,14 +231,14 @@ class LicenseAuditor:
             recommendations.append("Verify banking use case is not in prohibited list")
             risk_level = "medium"
         
-        # Vérifier les restrictions
+        # Check restrictions
         for restriction in license_info.restrictions:
             if "high-risk" in restriction.lower():
                 issues.append("License mentions high-risk application restrictions")
                 recommendations.append("Confirm banking assistant is not considered high-risk")
                 risk_level = "medium"
         
-        # Vérifier la vérification
+        # Check verification
         if not license_info.verified:
             issues.append("License has not been formally verified")
             recommendations.append("Conduct formal license verification")
@@ -254,7 +254,7 @@ class LicenseAuditor:
         }
     
     def generate_audit_report(self) -> dict:
-        """Génère un rapport d'audit complet des licences."""
+        """Generates a complete license audit report."""
         report = {
             "metadata": {
                 "title": "License Audit Report",
@@ -280,7 +280,7 @@ class LicenseAuditor:
                 "banking_compatibility_check": banking_check,
             }
             
-            # Mise à jour du résumé
+            # Update summary
             if license_info.license_type == LicenseType.APACHE_2_0:
                 report["summary"]["fully_permissive"] += 1
             elif license_info.license_type in [LicenseType.GEMMA, LicenseType.LLAMA]:
@@ -294,7 +294,7 @@ class LicenseAuditor:
         return report
     
     def save_report(self, filename: Optional[str] = None) -> Path:
-        """Sauvegarde le rapport d'audit."""
+        """Saves the audit report."""
         report = self.generate_audit_report()
         
         if filename is None:
@@ -310,7 +310,7 @@ class LicenseAuditor:
         return filepath
     
     def print_summary(self):
-        """Affiche le résumé de l'audit."""
+        """Prints the audit summary."""
         print("\n" + "=" * 60)
         print("LICENSE AUDIT SUMMARY")
         print("=" * 60)
@@ -338,7 +338,7 @@ class LicenseAuditor:
         
         print("\n" + "=" * 60)
         
-        # Résumé
+        # Summary
         report = self.generate_audit_report()
         summary = report["summary"]
         

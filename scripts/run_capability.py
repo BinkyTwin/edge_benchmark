@@ -3,21 +3,21 @@
 Run Capability Benchmarks
 =========================
 
-Script pour exécuter les benchmarks de capacités sur les modèles SLM.
+Script to run capability benchmarks on SLM models.
 
 Features:
-- Exécution modèle par modèle
-- Checkpoint automatique après chaque tâche
-- Reprise automatique en cas de crash (--resume)
-- Protection contre les erreurs
+- Model-by-model execution
+- Automatic checkpoint after each task
+- Automatic resume after crash (--resume)
+- Error protection
 
 Usage:
-    # Banking evaluations (FOCUS PRINCIPAL)
+    # Banking evaluations (PRIMARY FOCUS)
     python scripts/run_capability.py --task banking77 --model google/gemma-3n-e4b
     python scripts/run_capability.py --task financial_phrasebank --model google/gemma-3n-e4b
     python scripts/run_capability.py --task banking_all --model google/gemma-3n-e4b
     
-    # Tous les modèles sur une tâche
+    # All models on one task
     python scripts/run_capability.py --task banking77 --all-models
     
     # Realistic scenarios
@@ -29,7 +29,7 @@ Usage:
     # Mini harness (MMLU + GSM8K)
     python scripts/run_capability.py --task harness --gguf-path /path/to/model.gguf
     
-    # Reprendre après un crash
+    # Resume after crash
     python scripts/run_capability.py --resume
 """
 
@@ -37,7 +37,7 @@ import argparse
 import sys
 from pathlib import Path
 
-# Ajouter le répertoire parent au path
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import yaml
@@ -46,13 +46,13 @@ from src.checkpoint import CheckpointManager
 
 
 def load_models_config(config_path: Path) -> dict:
-    """Charge la configuration des modèles."""
+    """Load models configuration."""
     with open(config_path) as f:
         return yaml.safe_load(f)
 
 
 def get_all_model_ids(config_path: Path) -> list[str]:
-    """Récupère tous les IDs de modèles depuis la config."""
+    """Get all model IDs from config."""
     models_config = load_models_config(config_path)
     models = models_config.get("models", {})
     return [m["id"] for m in models.values()]
@@ -138,14 +138,14 @@ def main():
     
     args = parser.parse_args()
     
-    # Déterminer les modèles à évaluer
+    # Determine models to evaluate
     if args.all_models:
         models_config_path = args.config_dir / "models.yaml"
         model_ids = get_all_model_ids(models_config_path)
     else:
         model_ids = [args.model]
     
-    # Déterminer les tâches
+    # Determine tasks
     if args.task == "all":
         tasks = ["banking77", "financial_phrasebank", "realistic", "coding"]
     else:
@@ -159,7 +159,7 @@ def main():
     print(f"LM Studio URL: {args.base_url}")
     print("=" * 60)
     
-    # Initialiser le checkpoint manager
+    # Initialize the checkpoint manager
     checkpoint = None
     if not args.no_checkpoint:
         checkpoint = CheckpointManager(results_dir=args.results_dir)
@@ -176,10 +176,10 @@ def main():
                 tasks=tasks,
             )
     
-    # Initialiser le client LM Studio
+    # Initialize LM Studio client
     client = LMStudioClient(base_url=args.base_url)
     
-    # Vérifier la santé du serveur (sauf pour harness)
+    # Check server health (except for harness)
     if args.task != "harness":
         health = client.health_check()
         if health["status"] != "healthy":
@@ -192,7 +192,7 @@ def main():
     try:
         for model_id in model_ids:
             for task in tasks:
-                # Vérifier si déjà complété
+                # Check if already completed
                 if checkpoint and checkpoint.should_skip(model_id, task):
                     print(f"\n[Skip] {model_id}/{task} already completed")
                     continue
@@ -223,7 +223,7 @@ def main():
                     failed_count += 1
                     if checkpoint:
                         checkpoint.mark_failed(model_id, task, str(e))
-                    # Continue avec le prochain
+                    # Continue with the next one
                     continue
     
     except KeyboardInterrupt:
@@ -233,7 +233,7 @@ def main():
     finally:
         client.close()
     
-    # Résumé final
+    # Final summary
     if checkpoint:
         checkpoint.print_summary()
     
@@ -253,7 +253,7 @@ def main():
 
 def run_single_task(task: str, model_id: str, client: LMStudioClient, args) -> str:
     """
-    Exécute une seule tâche et retourne le nom du fichier de résultat.
+    Execute a single task and return the result filename.
     """
     result_file = ""
     
@@ -312,7 +312,7 @@ def run_single_task(task: str, model_id: str, client: LMStudioClient, args) -> s
         result_file = f"coding_humaneval_{model_id.replace('/', '_')}.json"
         
     elif task == "extraction":
-        # Test uniquement l'extraction JSON (pour debug/optimisation)
+        # Test only JSON extraction (for debug/optimization)
         from src.capability.realistic_scenarios import RealisticScenariosEvaluator
         
         evaluator = RealisticScenariosEvaluator(client, results_dir=args.results_dir)
@@ -322,7 +322,7 @@ def run_single_task(task: str, model_id: str, client: LMStudioClient, args) -> s
             progress_bar=not args.no_progress,
         )
         
-        # Sauvegarder le résultat
+        # Save result
         import json
         from datetime import datetime
         
@@ -334,13 +334,13 @@ def run_single_task(task: str, model_id: str, client: LMStudioClient, args) -> s
         with open(filepath, "w") as f:
             json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
         
-        # Afficher un résumé
+        # Display summary
         print("\n" + "=" * 60)
         print("EXTRACTION JSON TEST RESULTS")
         print("=" * 60)
         print(f"Model: {model_id}")
         print(f"Samples: {result.num_samples}")
-        print(f"\nMétriques:")
+        print(f"\nMetrics:")
         for key, value in result.metrics.items():
             if isinstance(value, float):
                 if 0 <= value <= 1:

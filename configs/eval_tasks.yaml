@@ -1,12 +1,12 @@
 # Edge SLM Benchmark - Evaluation Tasks Configuration
-# Définition des tâches d'évaluation de capacités
+# Definition of capability evaluation tasks
 
 # === MINI-BENCHMARK LM-EVALUATION-HARNESS ===
-# Objectif: Validation rapide, pas exhaustif
-# Durée estimée: ~30min-1h par modèle
+# Objective: Quick validation, not exhaustive
+# Estimated duration: ~30min-1h per model
 
 harness_tasks:
-  # MMLU - Connaissances multi-domaines (subset)
+  # MMLU - Multi-domain knowledge (subset)
   mmlu_mini:
     task_name: "mmlu"
     description: "Massive Multitask Language Understanding (subset)"
@@ -14,10 +14,10 @@ harness_tasks:
     
     config:
       num_fewshot: 5
-      limit: 200              # Subset de 200 questions
+      limit: 200              # Subset of 200 questions
       batch_size: 4
       
-    subjects_subset:          # Domaines pertinents banking
+    subjects_subset:          # Banking-relevant domains
       - "professional_accounting"
       - "business_ethics"
       - "management"
@@ -30,7 +30,7 @@ harness_tasks:
       
     estimated_time_minutes: 20
 
-  # GSM8K - Raisonnement mathématique (subset)
+  # GSM8K - Mathematical reasoning (subset)
   gsm8k_mini:
     task_name: "gsm8k"
     description: "Grade School Math 8K (subset)"
@@ -38,7 +38,7 @@ harness_tasks:
     
     config:
       num_fewshot: 5
-      limit: 100              # Subset de 100 problèmes
+      limit: 100              # Subset of 100 problems
       batch_size: 4
       
     metrics:
@@ -47,19 +47,19 @@ harness_tasks:
       
     estimated_time_minutes: 15
 
-# === TÂCHES BANKING - FOCUS PRINCIPAL ===
+# === BANKING TASKS ===
 banking_tasks:
-  # Banking77 - Classification d'intents
+  # Banking77 - Intent classification
   banking77:
     name: "Banking77 Intent Classification"
-    description: "Classification de requêtes bancaires en 77 catégories d'intent"
+    description: "Classification of banking queries into 77 intent categories"
     source: "PolyAI/banking77"
     framework: "lmstudio"
     
     dataset:
       huggingface_id: "PolyAI/banking77"
       split: "test"
-      sample_size: null       # Utiliser tout le test set (~3k exemples)
+      sample_size: null       # Use full test set (~3k examples)
       
     task_type: "classification"
     num_classes: 77
@@ -81,19 +81,19 @@ banking_tasks:
       max_tokens: 50
       
   # Financial PhraseBank - Sentiment
-  # Note: Le dataset original takala/financial_phrasebank utilise un script legacy
-  # qui n'est plus supporté par la bibliothèque datasets. On utilise ChanceFocus/flare-fpb
-  # qui contient les mêmes données en format Parquet moderne.
+  # Note: The original takala/financial_phrasebank dataset uses a legacy script
+  # that is no longer supported by the datasets library. We use ChanceFocus/flare-fpb
+  # which contains the same data in modern Parquet format.
   financial_phrasebank:
     name: "Financial PhraseBank Sentiment"
-    description: "Analyse de sentiment sur news financières (via flare-fpb)"
+    description: "Sentiment analysis on financial news (via flare-fpb)"
     source: "ChanceFocus/flare-fpb"
     framework: "lmstudio"
     
     dataset:
       huggingface_id: "ChanceFocus/flare-fpb"
-      split: "test"                 # Split test pour évaluation
-      sample_size: 970              # Taille du split test
+      split: "test"                 # Test split for evaluation
+      sample_size: 970              # Test split size
       
     task_type: "classification"
     num_classes: 3
@@ -118,16 +118,16 @@ banking_tasks:
       temperature: 0
       max_tokens: 10
 
-  # FinTextQA - QA Finance (optionnel)
+  # FinTextQA - Finance QA (optional)
   fintextqa:
     name: "FinTextQA"
-    description: "Question-Answering sur documents financiers"
+    description: "Question-Answering on financial documents"
     source: "fintextqa"
     framework: "lmstudio"
-    enabled: false            # Optionnel, désactivé par défaut
+    enabled: false            # Optional, disabled by default
     
     dataset:
-      source: "manual"        # Nécessite téléchargement manuel
+      source: "manual"        # Requires manual download
       sample_size: 100
       
     task_type: "qa"
@@ -146,18 +146,18 @@ banking_tasks:
       - f1_score
       - rouge_l
 
-# === TEST DE CODAGE (MINI) ===
+# === CODING TEST (MINI) ===
 coding_tasks:
   humaneval_mini:
     name: "HumanEval Mini"
-    description: "Évaluation de génération de code Python (subset)"
+    description: "Python code generation evaluation (subset)"
     source: "openai/humaneval"
     framework: "lmstudio"
     
     dataset:
       huggingface_id: "openai/openai_humaneval"
       split: "test"
-      sample_size: 30         # Subset de 30 problèmes
+      sample_size: 30         # Subset of 30 problems
       
     task_type: "code_generation"
     language: "python"
@@ -179,17 +179,17 @@ coding_tasks:
         - "\nclass "
         - "\n#"
 
-# === CONFIGURATION DES SETTINGS A/B ===
+# === A/B SETTINGS CONFIGURATION ===
 evaluation_settings:
   setting_a_realistic:
     name: "Realistic (Native Templates)"
-    description: "Utilise les templates chat natifs de LM Studio"
+    description: "Uses LM Studio's native chat templates"
     use_native_templates: true
     apply_chat_template: true
     
   setting_b_controlled:
     name: "Controlled (Unified Prompts)"
-    description: "Prompt unifié sans template spécifique"
+    description: "Unified prompt without specific template"
     use_native_templates: false
     apply_chat_template: false
     raw_prompt_format: |
@@ -197,7 +197,7 @@ evaluation_settings:
       
       {user_prompt}
 
-# Ordre d'exécution recommandé
+# Recommended execution order
 execution_order:
   priority_1_banking:
     - banking77

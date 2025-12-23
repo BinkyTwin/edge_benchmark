@@ -2,11 +2,11 @@
 Statistical Analysis Module
 ============================
 
-Analyses statistiques rigoureuses pour les benchmarks:
-- Intervalles de confiance (IC 95%)
-- Bootstrap pour estimations robustes
-- Tests de significativité (paired t-test, Wilcoxon)
-- Comparaisons multiples avec correction
+Rigorous statistical analyses for benchmarks:
+- Confidence intervals (95% CI)
+- Bootstrap for robust estimations
+- Significance tests (paired t-test, Wilcoxon)
+- Multiple comparisons with correction
 """
 
 import warnings
@@ -19,7 +19,7 @@ from scipy import stats
 
 @dataclass
 class ConfidenceInterval:
-    """Intervalle de confiance."""
+    """Confidence interval."""
     
     mean: float
     lower: float
@@ -42,7 +42,7 @@ class ConfidenceInterval:
 
 @dataclass
 class SignificanceTest:
-    """Résultat d'un test de significativité."""
+    """Result of a significance test."""
     
     test_name: str
     statistic: float
@@ -52,7 +52,7 @@ class SignificanceTest:
     effect_size: Optional[float] = None
     effect_size_name: str = ""
     
-    # Pour comparaisons multiples
+    # For multiple comparisons
     corrected_p_value: Optional[float] = None
     correction_method: str = ""
     
@@ -72,24 +72,24 @@ class SignificanceTest:
 
 @dataclass
 class ModelComparison:
-    """Résultat de comparaison entre deux modèles."""
+    """Result of comparison between two models."""
     
     model_a: str
     model_b: str
     metric: str
     
-    # Statistiques descriptives
+    # Descriptive statistics
     mean_a: float
     mean_b: float
     diff_mean: float
     diff_percent: float
     
-    # Intervalles de confiance
+    # Confidence intervals
     ci_a: ConfidenceInterval = None
     ci_b: ConfidenceInterval = None
     ci_diff: ConfidenceInterval = None
     
-    # Test de significativité
+    # Significance test
     test_result: SignificanceTest = None
     
     def to_dict(self) -> dict:
@@ -110,20 +110,20 @@ class ModelComparison:
 
 class StatisticalAnalyzer:
     """
-    Analyseur statistique pour les benchmarks SLM.
+    Statistical analyzer for SLM benchmarks.
     
-    Fournit:
-    - Intervalles de confiance (t-distribution et bootstrap)
-    - Tests de significativité paramétriques et non-paramétriques
-    - Correction pour comparaisons multiples
-    - Tailles d'effet
+    Provides:
+    - Confidence intervals (t-distribution and bootstrap)
+    - Parametric and non-parametric significance tests
+    - Correction for multiple comparisons
+    - Effect sizes
     """
     
     def __init__(self, confidence_level: float = 0.95, seed: int = 42):
         """
         Args:
-            confidence_level: Niveau de confiance (défaut: 0.95 = 95%)
-            seed: Seed pour le bootstrap
+            confidence_level: Confidence level (default: 0.95 = 95%)
+            seed: Seed for bootstrap
         """
         self.confidence_level = confidence_level
         self.alpha = 1 - confidence_level
@@ -131,7 +131,7 @@ class StatisticalAnalyzer:
         np.random.seed(seed)
     
     # =========================================================================
-    # INTERVALLES DE CONFIANCE
+    # CONFIDENCE INTERVALS
     # =========================================================================
     
     def confidence_interval_t(
@@ -140,13 +140,13 @@ class StatisticalAnalyzer:
         confidence_level: Optional[float] = None,
     ) -> ConfidenceInterval:
         """
-        Calcule l'intervalle de confiance via t-distribution.
+        Computes confidence interval via t-distribution.
         
-        Approprié pour échantillons de taille modérée (n >= 20).
+        Appropriate for moderate sample sizes (n >= 20).
         
         Args:
-            data: Données (array 1D)
-            confidence_level: Niveau de confiance (optionnel)
+            data: Data (1D array)
+            confidence_level: Confidence level (optional)
             
         Returns:
             ConfidenceInterval
@@ -167,7 +167,7 @@ class StatisticalAnalyzer:
         mean = np.mean(data)
         se = stats.sem(data)  # Standard error of the mean
         
-        # t-value pour le niveau de confiance
+        # t-value for the confidence level
         t_value = stats.t.ppf((1 + confidence_level) / 2, n - 1)
         
         margin = t_value * se
@@ -188,16 +188,16 @@ class StatisticalAnalyzer:
         method: str = "percentile",
     ) -> ConfidenceInterval:
         """
-        Calcule l'intervalle de confiance via bootstrap.
+        Computes confidence interval via bootstrap.
         
-        Plus robuste, ne suppose pas de distribution normale.
-        Recommandé pour petits échantillons ou distributions non-normales.
+        More robust, does not assume normal distribution.
+        Recommended for small samples or non-normal distributions.
         
         Args:
-            data: Données (array 1D)
-            confidence_level: Niveau de confiance
-            n_bootstrap: Nombre d'itérations bootstrap
-            method: 'percentile' ou 'bca' (bias-corrected accelerated)
+            data: Data (1D array)
+            confidence_level: Confidence level
+            n_bootstrap: Number of bootstrap iterations
+            method: 'percentile' or 'bca' (bias-corrected accelerated)
             
         Returns:
             ConfidenceInterval
@@ -228,7 +228,7 @@ class StatisticalAnalyzer:
             lower = np.percentile(bootstrap_means, (alpha / 2) * 100)
             upper = np.percentile(bootstrap_means, (1 - alpha / 2) * 100)
         else:
-            # BCa method (plus sophistiqué)
+            # BCa method (more sophisticated)
             lower = np.percentile(bootstrap_means, (alpha / 2) * 100)
             upper = np.percentile(bootstrap_means, (1 - alpha / 2) * 100)
         
@@ -241,7 +241,7 @@ class StatisticalAnalyzer:
         )
     
     # =========================================================================
-    # TESTS DE SIGNIFICATIVITÉ
+    # SIGNIFICANCE TESTS
     # =========================================================================
     
     def paired_ttest(
@@ -251,15 +251,15 @@ class StatisticalAnalyzer:
         alpha: Optional[float] = None,
     ) -> SignificanceTest:
         """
-        Test t apparié (paired t-test).
+        Paired t-test.
         
-        Utilisé quand les mêmes prompts sont utilisés pour les deux modèles.
-        Suppose une distribution normale des différences.
+        Used when the same prompts are used for both models.
+        Assumes normal distribution of differences.
         
         Args:
-            data_a: Mesures du modèle A
-            data_b: Mesures du modèle B
-            alpha: Seuil de significativité
+            data_a: Model A measurements
+            data_b: Model B measurements
+            alpha: Significance threshold
             
         Returns:
             SignificanceTest
@@ -269,11 +269,11 @@ class StatisticalAnalyzer:
         data_b = np.asarray(data_b)
         
         if len(data_a) != len(data_b):
-            raise ValueError("Les deux échantillons doivent avoir la même taille pour un test apparié")
+            raise ValueError("Both samples must have the same size for a paired test")
         
         statistic, p_value = stats.ttest_rel(data_a, data_b)
         
-        # Taille d'effet (Cohen's d pour échantillons appariés)
+        # Effect size (Cohen's d for paired samples)
         diff = data_a - data_b
         cohens_d = np.mean(diff) / np.std(diff, ddof=1)
         
@@ -294,16 +294,16 @@ class StatisticalAnalyzer:
         alpha: Optional[float] = None,
     ) -> SignificanceTest:
         """
-        Test de Wilcoxon signé (non-paramétrique).
+        Wilcoxon signed-rank test (non-parametric).
         
-        Alternative robuste au t-test apparié.
-        Ne suppose pas de distribution normale.
-        Recommandé pour petits échantillons ou données non-normales.
+        Robust alternative to paired t-test.
+        Does not assume normal distribution.
+        Recommended for small samples or non-normal data.
         
         Args:
-            data_a: Mesures du modèle A
-            data_b: Mesures du modèle B
-            alpha: Seuil de significativité
+            data_a: Model A measurements
+            data_b: Model B measurements
+            alpha: Significance threshold
             
         Returns:
             SignificanceTest
@@ -313,14 +313,14 @@ class StatisticalAnalyzer:
         data_b = np.asarray(data_b)
         
         if len(data_a) != len(data_b):
-            raise ValueError("Les deux échantillons doivent avoir la même taille")
+            raise ValueError("Both samples must have the same size")
         
         # Wilcoxon signed-rank test
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             statistic, p_value = stats.wilcoxon(data_a, data_b, alternative='two-sided')
         
-        # Taille d'effet (rank-biserial correlation)
+        # Effect size (rank-biserial correlation)
         n = len(data_a)
         r = 1 - (2 * statistic) / (n * (n + 1))
         
@@ -341,14 +341,14 @@ class StatisticalAnalyzer:
         alpha: Optional[float] = None,
     ) -> SignificanceTest:
         """
-        Test de Mann-Whitney U (non-paramétrique, échantillons indépendants).
+        Mann-Whitney U test (non-parametric, independent samples).
         
-        Utilisé quand les prompts sont différents entre modèles.
+        Used when prompts are different between models.
         
         Args:
-            data_a: Mesures du modèle A
-            data_b: Mesures du modèle B
-            alpha: Seuil de significativité
+            data_a: Model A measurements
+            data_b: Model B measurements
+            alpha: Significance threshold
             
         Returns:
             SignificanceTest
@@ -361,7 +361,7 @@ class StatisticalAnalyzer:
             data_a, data_b, alternative='two-sided'
         )
         
-        # Taille d'effet (rank-biserial correlation)
+        # Effect size (rank-biserial correlation)
         n1, n2 = len(data_a), len(data_b)
         r = 1 - (2 * statistic) / (n1 * n2)
         
@@ -376,7 +376,7 @@ class StatisticalAnalyzer:
         )
     
     # =========================================================================
-    # COMPARAISONS MULTIPLES
+    # MULTIPLE COMPARISONS
     # =========================================================================
     
     def bonferroni_correction(
@@ -385,17 +385,17 @@ class StatisticalAnalyzer:
         alpha: Optional[float] = None,
     ) -> List[Tuple[float, bool]]:
         """
-        Correction de Bonferroni pour comparaisons multiples.
+        Bonferroni correction for multiple comparisons.
         
-        Contrôle le FWER (Family-Wise Error Rate).
-        Conservatif mais simple.
+        Controls FWER (Family-Wise Error Rate).
+        Conservative but simple.
         
         Args:
-            p_values: Liste des p-values
-            alpha: Seuil de significativité
+            p_values: List of p-values
+            alpha: Significance threshold
             
         Returns:
-            Liste de (p_value_corrigée, significatif)
+            List of (corrected_p_value, significant)
         """
         alpha = alpha or self.alpha
         n = len(p_values)
@@ -412,36 +412,36 @@ class StatisticalAnalyzer:
         alpha: Optional[float] = None,
     ) -> List[Tuple[float, bool]]:
         """
-        Correction de Holm-Bonferroni (step-down).
+        Holm-Bonferroni correction (step-down).
         
-        Moins conservatif que Bonferroni, plus puissant.
+        Less conservative than Bonferroni, more powerful.
         
         Args:
-            p_values: Liste des p-values
-            alpha: Seuil de significativité
+            p_values: List of p-values
+            alpha: Significance threshold
             
         Returns:
-            Liste de (p_value_corrigée, significatif)
+            List of (corrected_p_value, significant)
         """
         alpha = alpha or self.alpha
         n = len(p_values)
         
-        # Trier les p-values
+        # Sort p-values
         sorted_indices = np.argsort(p_values)
         sorted_p = np.array(p_values)[sorted_indices]
         
-        # Correction step-down
+        # Step-down correction
         corrected_p = np.zeros(n)
         for i, p in enumerate(sorted_p):
             corrected_p[i] = p * (n - i)
         
-        # Assurer la monotonie
+        # Ensure monotonicity
         for i in range(1, n):
             corrected_p[i] = max(corrected_p[i], corrected_p[i-1])
         
         corrected_p = np.minimum(corrected_p, 1.0)
         
-        # Remettre dans l'ordre original
+        # Restore original order
         result = [(0.0, False)] * n
         for i, orig_idx in enumerate(sorted_indices):
             result[orig_idx] = (corrected_p[i], corrected_p[i] < alpha)
@@ -449,7 +449,7 @@ class StatisticalAnalyzer:
         return result
     
     # =========================================================================
-    # COMPARAISON DE MODÈLES
+    # MODEL COMPARISON
     # =========================================================================
     
     def compare_models(
@@ -463,19 +463,19 @@ class StatisticalAnalyzer:
         use_bootstrap: bool = True,
     ) -> ModelComparison:
         """
-        Compare deux modèles sur une métrique.
+        Compare two models on a metric.
         
         Args:
-            model_a_name: Nom du modèle A
-            model_b_name: Nom du modèle B
-            data_a: Mesures du modèle A
-            data_b: Mesures du modèle B
-            metric_name: Nom de la métrique
-            paired: Si True, utilise des tests appariés
-            use_bootstrap: Si True, utilise bootstrap pour les IC
+            model_a_name: Model A name
+            model_b_name: Model B name
+            data_a: Model A measurements
+            data_b: Model B measurements
+            metric_name: Metric name
+            paired: If True, uses paired tests
+            use_bootstrap: If True, uses bootstrap for CIs
             
         Returns:
-            ModelComparison complet
+            Complete ModelComparison
         """
         data_a = np.asarray(data_a)
         data_b = np.asarray(data_b)
@@ -485,7 +485,7 @@ class StatisticalAnalyzer:
         diff_mean = mean_a - mean_b
         diff_percent = (diff_mean / mean_b) * 100 if mean_b != 0 else 0
         
-        # Intervalles de confiance
+        # Confidence intervals
         if use_bootstrap:
             ci_a = self.confidence_interval_bootstrap(data_a)
             ci_b = self.confidence_interval_bootstrap(data_b)
@@ -493,7 +493,7 @@ class StatisticalAnalyzer:
             ci_a = self.confidence_interval_t(data_a)
             ci_b = self.confidence_interval_t(data_b)
         
-        # IC sur la différence (pour données appariées)
+        # CI on the difference (for paired data)
         ci_diff = None
         if paired and len(data_a) == len(data_b):
             diff = data_a - data_b
@@ -502,17 +502,17 @@ class StatisticalAnalyzer:
             else:
                 ci_diff = self.confidence_interval_t(diff)
         
-        # Test de significativité
+        # Significance test
         if paired:
-            # Vérifier la normalité des différences
+            # Check normality of differences
             diff = data_a - data_b
             _, normality_p = stats.shapiro(diff) if len(diff) >= 3 else (0, 0)
             
             if normality_p > 0.05 and len(data_a) >= 20:
-                # Distribution normale: t-test
+                # Normal distribution: t-test
                 test_result = self.paired_ttest(data_a, data_b)
             else:
-                # Non-normale ou petit échantillon: Wilcoxon
+                # Non-normal or small sample: Wilcoxon
                 test_result = self.wilcoxon_test(data_a, data_b)
         else:
             test_result = self.mann_whitney_test(data_a, data_b)
@@ -538,21 +538,21 @@ class StatisticalAnalyzer:
         paired: bool = True,
     ) -> List[ModelComparison]:
         """
-        Compare tous les modèles entre eux.
+        Compare all models against each other.
         
         Args:
             models_data: Dict {model_name: data_array}
-            metric_name: Nom de la métrique
-            paired: Si True, utilise des tests appariés
+            metric_name: Metric name
+            paired: If True, uses paired tests
             
         Returns:
-            Liste de ModelComparison pour chaque paire
+            List of ModelComparison for each pair
         """
         model_names = list(models_data.keys())
         comparisons = []
         p_values = []
         
-        # Comparer toutes les paires
+        # Compare all pairs
         for i in range(len(model_names)):
             for j in range(i + 1, len(model_names)):
                 comparison = self.compare_models(
@@ -566,7 +566,7 @@ class StatisticalAnalyzer:
                 comparisons.append(comparison)
                 p_values.append(comparison.test_result.p_value)
         
-        # Correction pour comparaisons multiples (Holm)
+        # Correction for multiple comparisons (Holm)
         if len(p_values) > 1:
             corrected = self.holm_correction(p_values)
             for i, comparison in enumerate(comparisons):
@@ -581,13 +581,13 @@ class StatisticalAnalyzer:
         comparisons: List[ModelComparison],
     ) -> str:
         """
-        Formate les comparaisons en tableau Markdown.
+        Formats comparisons as a Markdown table.
         
         Args:
-            comparisons: Liste de ModelComparison
+            comparisons: List of ModelComparison
             
         Returns:
-            Tableau Markdown
+            Markdown table
         """
         lines = []
         lines.append("| Model A | Model B | Metric | Diff (%) | p-value | Sig. | Effect |")

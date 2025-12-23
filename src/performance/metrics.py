@@ -2,7 +2,7 @@
 Metrics Collector
 =================
 
-Module pour la collecte et l'agrégation des métriques de performance:
+Module for collection and aggregation of performance metrics:
 - Timing (TTFT, total time)
 - Throughput (tokens/s)
 - Memory (RAM usage via psutil)
@@ -19,16 +19,16 @@ import psutil
 
 @dataclass
 class MemorySnapshot:
-    """Snapshot de l'utilisation mémoire."""
+    """Memory usage snapshot."""
     
     timestamp: float
     rss_mb: float           # Resident Set Size
     vms_mb: float           # Virtual Memory Size
-    percent: float          # Pourcentage de RAM utilisée
+    percent: float          # RAM percentage used
     
     @classmethod
     def capture(cls) -> "MemorySnapshot":
-        """Capture un snapshot de la mémoire actuelle."""
+        """Captures a snapshot of current memory."""
         process = psutil.Process()
         mem_info = process.memory_info()
         mem_percent = process.memory_percent()
@@ -43,7 +43,7 @@ class MemorySnapshot:
 
 @dataclass
 class AggregatedMetrics:
-    """Métriques agrégées sur plusieurs runs."""
+    """Aggregated metrics across multiple runs."""
     
     # TTFT
     ttft_mean_ms: float = 0.0
@@ -83,7 +83,7 @@ class AggregatedMetrics:
     success_rate: float = 0.0
     
     def to_dict(self) -> dict:
-        """Convertit en dictionnaire."""
+        """Converts to dictionary."""
         return {
             "ttft": {
                 "mean_ms": round(self.ttft_mean_ms, 2),
@@ -127,20 +127,20 @@ class AggregatedMetrics:
 
 class MetricsCollector:
     """
-    Collecteur de métriques pour les benchmarks de performance.
+    Metrics collector for performance benchmarks.
     
-    Collecte les métriques de timing, throughput et mémoire
-    sur plusieurs runs et calcule les statistiques agrégées.
+    Collects timing, throughput and memory metrics
+    across multiple runs and calculates aggregated statistics.
     """
     
     def __init__(self):
-        """Initialise le collecteur."""
+        """Initializes the collector."""
         self.runs: list[dict] = []
         self.memory_snapshots: list[MemorySnapshot] = []
         self._monitoring = False
     
     def reset(self):
-        """Réinitialise le collecteur."""
+        """Resets the collector."""
         self.runs = []
         self.memory_snapshots = []
         self._monitoring = False
@@ -158,18 +158,18 @@ class MetricsCollector:
         **extra,
     ):
         """
-        Ajoute les métriques d'un run.
+        Adds metrics from a run.
         
         Args:
             ttft_ms: Time to first token (ms)
-            total_time_ms: Temps total (ms)
-            output_tokens_per_sec: Débit de génération
-            prompt_tokens_per_sec: Vitesse d'ingestion
-            prompt_tokens: Nombre de tokens du prompt
-            completion_tokens: Nombre de tokens générés
-            success: Si le run a réussi
-            error: Message d'erreur si échec
-            **extra: Métriques supplémentaires
+            total_time_ms: Total time (ms)
+            output_tokens_per_sec: Generation throughput
+            prompt_tokens_per_sec: Ingestion speed
+            prompt_tokens: Number of prompt tokens
+            completion_tokens: Number of generated tokens
+            success: Whether the run succeeded
+            error: Error message if failed
+            **extra: Additional metrics
         """
         run_data = {
             "ttft_ms": ttft_ms,
@@ -185,16 +185,16 @@ class MetricsCollector:
         }
         self.runs.append(run_data)
         
-        # Capturer la mémoire à chaque run
+        # Capture memory at each run
         self.memory_snapshots.append(MemorySnapshot.capture())
     
     def add_from_completion_metrics(self, metrics: "CompletionMetrics", success: bool = True):
         """
-        Ajoute les métriques depuis un objet CompletionMetrics.
+        Adds metrics from a CompletionMetrics object.
         
         Args:
-            metrics: Métriques de complétion
-            success: Si le run a réussi
+            metrics: Completion metrics
+            success: Whether the run succeeded
         """
         self.add_run(
             ttft_ms=metrics.ttft_ms,
@@ -209,15 +209,15 @@ class MetricsCollector:
     
     def aggregate(self) -> AggregatedMetrics:
         """
-        Calcule les métriques agrégées sur tous les runs.
+        Calculates aggregated metrics across all runs.
         
         Returns:
-            AggregatedMetrics avec statistiques
+            AggregatedMetrics with statistics
         """
         if not self.runs:
             return AggregatedMetrics()
         
-        # Filtrer les runs réussis pour les stats
+        # Filter successful runs for stats
         successful_runs = [r for r in self.runs if r["success"]]
         
         if not successful_runs:
@@ -227,7 +227,7 @@ class MetricsCollector:
                 success_rate=0.0,
             )
         
-        # Extraire les valeurs
+        # Extract values
         ttfts = [r["ttft_ms"] for r in successful_runs]
         total_times = [r["total_time_ms"] for r in successful_runs]
         output_tps = [r["output_tokens_per_sec"] for r in successful_runs if r["output_tokens_per_sec"] > 0]
@@ -278,12 +278,12 @@ class MetricsCollector:
         )
     
     def get_raw_data(self) -> list[dict]:
-        """Retourne les données brutes de tous les runs."""
+        """Returns raw data from all runs."""
         return self.runs.copy()
     
     @staticmethod
     def _percentile(data: list[float], p: float) -> float:
-        """Calcule le percentile p d'une liste de valeurs."""
+        """Calculates the p percentile of a list of values."""
         if not data:
             return 0.0
         sorted_data = sorted(data)
@@ -295,15 +295,15 @@ class MetricsCollector:
 
 class MemoryMonitor:
     """
-    Moniteur de mémoire pour capturer le pic de RAM pendant l'inférence.
+    Memory monitor to capture peak RAM during inference.
     
-    Utilise un thread séparé pour sampler la mémoire périodiquement.
+    Uses a separate thread to sample memory periodically.
     """
     
     def __init__(self, sample_interval: float = 0.1):
         """
         Args:
-            sample_interval: Intervalle d'échantillonnage en secondes
+            sample_interval: Sampling interval in seconds
         """
         self.sample_interval = sample_interval
         self.snapshots: list[MemorySnapshot] = []
@@ -311,7 +311,7 @@ class MemoryMonitor:
         self._thread = None
     
     def start(self):
-        """Démarre le monitoring."""
+        """Starts the monitoring."""
         import threading
         
         self.snapshots = []
@@ -327,10 +327,10 @@ class MemoryMonitor:
     
     def stop(self) -> dict:
         """
-        Arrête le monitoring et retourne les statistiques.
+        Stops the monitoring and returns statistics.
         
         Returns:
-            Dictionnaire avec peak_ram_mb, avg_ram_mb, num_samples
+            Dictionary with peak_ram_mb, avg_ram_mb, num_samples
         """
         self._running = False
         if self._thread:

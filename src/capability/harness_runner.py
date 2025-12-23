@@ -2,11 +2,11 @@
 LM Evaluation Harness Runner
 ============================
 
-Mini-benchmark via lm-evaluation-harness pour validation rapide.
-Exécute MMLU et GSM8K subsets directement sur les fichiers GGUF.
+Mini-benchmark via lm-evaluation-harness for quick validation.
+Executes MMLU and GSM8K subsets directly on GGUF files.
 
-Objectif: validation rapide des capacités (~30min-1h par modèle),
-pas un benchmark exhaustif.
+Objective: quick capability validation (~30min-1h per model),
+not an exhaustive benchmark.
 """
 
 import json
@@ -22,7 +22,7 @@ import yaml
 
 @dataclass
 class HarnessConfig:
-    """Configuration pour lm-evaluation-harness."""
+    """Configuration for lm-evaluation-harness."""
     
     task: str
     num_fewshot: int = 5
@@ -31,7 +31,7 @@ class HarnessConfig:
     device: str = "mps"  # Apple Silicon
     
     def to_args(self) -> list[str]:
-        """Convertit en arguments CLI."""
+        """Converts to CLI arguments."""
         args = [
             "--tasks", self.task,
             "--num_fewshot", str(self.num_fewshot),
@@ -45,24 +45,24 @@ class HarnessConfig:
 
 @dataclass
 class HarnessResult:
-    """Résultat d'une évaluation harness."""
+    """Result of a harness evaluation."""
     
     task: str
     model_path: str
     
-    # Métriques
+    # Metrics
     accuracy: float = 0.0
     accuracy_stderr: float = 0.0
     
-    # Autres métriques (task-specific)
+    # Other metrics (task-specific)
     metrics: dict = field(default_factory=dict)
     
-    # Métadonnées
+    # Metadata
     num_samples: int = 0
     duration_seconds: float = 0.0
     timestamp: str = ""
     
-    # Détails
+    # Details
     config: dict = field(default_factory=dict)
     raw_output: str = ""
     
@@ -82,13 +82,13 @@ class HarnessResult:
 
 class HarnessRunner:
     """
-    Runner pour lm-evaluation-harness.
+    Runner for lm-evaluation-harness.
     
-    Exécute les benchmarks académiques (MMLU, GSM8K) directement
-    sur les fichiers GGUF, contournant la limitation logprobs de LM Studio.
+    Executes academic benchmarks (MMLU, GSM8K) directly
+    on GGUF files, bypassing LM Studio logprobs limitation.
     """
     
-    # Tâches supportées avec leurs configurations par défaut
+    # Supported tasks with their default configurations
     SUPPORTED_TASKS = {
         "mmlu": {
             "task_name": "mmlu",
@@ -123,15 +123,15 @@ class HarnessRunner:
     ):
         """
         Args:
-            results_dir: Dossier pour les résultats
-            gguf_models_dir: Dossier contenant les fichiers GGUF
+            results_dir: Directory for results
+            gguf_models_dir: Directory containing GGUF files
         """
         self.results_dir = results_dir or Path("results")
         self.gguf_models_dir = gguf_models_dir
         self.results_dir.mkdir(parents=True, exist_ok=True)
     
     def check_harness_installed(self) -> bool:
-        """Vérifie si lm-evaluation-harness est installé."""
+        """Checks if lm-evaluation-harness is installed."""
         try:
             result = subprocess.run(
                 ["lm_eval", "--help"],
@@ -151,16 +151,16 @@ class HarnessRunner:
         verbose: bool = True,
     ) -> HarnessResult:
         """
-        Exécute une évaluation harness sur un modèle GGUF.
+        Executes a harness evaluation on a GGUF model.
         
         Args:
-            model_path: Chemin vers le fichier GGUF
-            task: Nom de la tâche (mmlu, gsm8k, etc.)
-            config: Configuration harness
-            verbose: Afficher la sortie
+            model_path: Path to the GGUF file
+            task: Task name (mmlu, gsm8k, etc.)
+            config: Harness configuration
+            verbose: Display output
             
         Returns:
-            HarnessResult avec métriques
+            HarnessResult with metrics
         """
         if task not in self.SUPPORTED_TASKS:
             raise ValueError(f"Task '{task}' not supported. Choose from: {list(self.SUPPORTED_TASKS.keys())}")
@@ -183,7 +183,7 @@ class HarnessRunner:
         
         start_time = time.time()
         
-        # Construire la commande
+            # Build the command
         cmd = [
             "lm_eval",
             "--model", "gguf",
@@ -196,7 +196,7 @@ class HarnessRunner:
         if verbose:
             print(f"\n[CMD] {' '.join(cmd)}")
         
-        # Exécuter
+            # Execute
         try:
             result = subprocess.run(
                 cmd,
@@ -216,7 +216,7 @@ class HarnessRunner:
                     timestamp=datetime.now().isoformat(),
                 )
             
-            # Parser les résultats
+                # Parse results
             harness_result = self._parse_output(
                 result.stdout,
                 task,
@@ -253,14 +253,14 @@ class HarnessRunner:
         tasks: Optional[list[str]] = None,
     ) -> dict[str, HarnessResult]:
         """
-        Exécute le mini-benchmark complet (MMLU + GSM8K subsets).
+        Executes the complete mini-benchmark (MMLU + GSM8K subsets).
         
         Args:
-            model_path: Chemin vers le fichier GGUF
-            tasks: Liste de tâches (default: mmlu, gsm8k)
+            model_path: Path to the GGUF file
+            tasks: Task list (default: mmlu, gsm8k)
             
         Returns:
-            Dictionnaire task -> HarnessResult
+            Dictionary task -> HarnessResult
         """
         tasks = tasks or ["mmlu", "gsm8k"]
         results = {}
@@ -271,7 +271,7 @@ class HarnessRunner:
         print(f"# Tasks: {tasks}")
         print(f"{'#'*60}")
         
-        # Vérifier l'installation
+        # Check installation
         if not self.check_harness_installed():
             print("\n[ERROR] lm-evaluation-harness is not installed!")
             print("Install with: pip install lm-eval")
@@ -283,7 +283,7 @@ class HarnessRunner:
             results[task] = result
             self.save_result(result)
         
-        # Résumé
+        # Summary
         self._print_summary(results)
         
         return results
@@ -296,7 +296,7 @@ class HarnessRunner:
         duration: float,
         config: HarnessConfig,
     ) -> HarnessResult:
-        """Parse la sortie du harness."""
+        """Parses the harness output."""
         result = HarnessResult(
             task=task,
             model_path=model_path,
@@ -306,8 +306,8 @@ class HarnessRunner:
             raw_output=output[-2000:],  # Garder les 2000 derniers caractères
         )
         
-        # Parser les métriques depuis la sortie
-        # Le format typique est:
+        # Parse metrics from the output
+        # Typical format is:
         # |    Tasks    |Version|Filter|n-shot|Metric|Value |   |Stderr|
         # |-------------|-------|------|------|------|------|---|------|
         # |mmlu         |      1|none  |     5|acc   |0.5123|±  |0.0234|
@@ -317,19 +317,19 @@ class HarnessRunner:
             if '|' in line and task.lower() in line.lower():
                 parts = [p.strip() for p in line.split('|')]
                 if len(parts) >= 8:
-                    try:
-                        # Chercher la colonne Value
+                            try:
+                        # Find the Value column
                         for i, part in enumerate(parts):
                             if part.replace('.', '').replace('-', '').isdigit():
                                 result.accuracy = float(part)
-                                # Chercher stderr
+                                # Find stderr
                                 if i + 2 < len(parts) and parts[i+1] == '±':
                                     result.accuracy_stderr = float(parts[i+2])
                                 break
                     except (ValueError, IndexError):
                         pass
         
-        # Chercher le nombre de samples
+        # Find the number of samples
         for line in lines:
             if "samples" in line.lower() or "examples" in line.lower():
                 import re
@@ -344,7 +344,7 @@ class HarnessRunner:
         return result
     
     def save_result(self, result: HarnessResult, filename: Optional[str] = None):
-        """Sauvegarde un résultat."""
+        """Saves a result."""
         if filename is None:
             model_name = Path(result.model_path).stem
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -358,7 +358,7 @@ class HarnessRunner:
         print(f"[Saved] Results saved to {filepath}")
     
     def _print_results(self, result: HarnessResult):
-        """Affiche les résultats."""
+        """Displays the results."""
         print(f"\n{'─'*40}")
         print("RESULTS")
         print(f"{'─'*40}")
@@ -369,7 +369,7 @@ class HarnessRunner:
         print(f"{'─'*40}")
     
     def _print_summary(self, results: dict[str, HarnessResult]):
-        """Affiche le résumé du mini-benchmark."""
+        """Displays the mini-benchmark summary."""
         print(f"\n{'='*60}")
         print("MINI-BENCHMARK SUMMARY")
         print(f"{'='*60}")
@@ -389,14 +389,14 @@ class HarnessRunner:
         print("=" * 60)
 
 
-# === ALTERNATIVE: Évaluation sans harness (via LM Studio API) ===
+# === ALTERNATIVE: Evaluation without harness (via LM Studio API) ===
 
 class SimplifiedHarnessEval:
     """
-    Version simplifiée de l'évaluation harness via LM Studio API.
+    Simplified version of harness evaluation via LM Studio API.
     
-    Pour les cas où lm-evaluation-harness n'est pas installé
-    ou pour une évaluation plus rapide.
+    For cases where lm-evaluation-harness is not installed
+    or for faster evaluation.
     """
     
     def __init__(self, client):
@@ -413,10 +413,10 @@ class SimplifiedHarnessEval:
         num_samples: int = 50,
     ) -> dict:
         """
-        Évalue un échantillon MMLU via forced-choice.
+        Evaluates an MMLU sample via forced-choice.
         
-        Note: Cette méthode est moins précise que le harness
-        car elle n'utilise pas les logprobs.
+        Note: This method is less precise than the harness
+        as it does not use logprobs.
         """
         from datasets import load_dataset
         from ..lmstudio_client import format_messages

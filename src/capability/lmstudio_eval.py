@@ -2,8 +2,8 @@
 LM Studio Evaluator
 ===================
 
-Évaluateur générique pour les tâches via LM Studio API.
-Support pour forced-choice generation (A/B/C/D).
+Generic evaluator for tasks via LM Studio API.
+Support for forced-choice generation (A/B/C/D).
 """
 
 import json
@@ -20,7 +20,7 @@ from ..lmstudio_client import LMStudioClient, format_messages
 
 @dataclass
 class EvalSample:
-    """Échantillon d'évaluation."""
+    """Evaluation sample."""
     
     prompt: str
     expected: str
@@ -30,7 +30,7 @@ class EvalSample:
 
 @dataclass
 class EvalMetrics:
-    """Métriques d'évaluation."""
+    """Evaluation metrics."""
     
     accuracy: float = 0.0
     num_correct: int = 0
@@ -48,9 +48,9 @@ class EvalMetrics:
 
 class LMStudioEvaluator:
     """
-    Évaluateur générique utilisant LM Studio API.
+    Generic evaluator using LM Studio API.
     
-    Supporte:
+    Supports:
     - Forced-choice (A/B/C/D)
     - Classification
     - Extraction
@@ -63,8 +63,8 @@ class LMStudioEvaluator:
     ):
         """
         Args:
-            client: Client LM Studio
-            results_dir: Dossier pour les résultats
+            client: LM Studio client
+            results_dir: Directory for results
         """
         self.client = client
         self.results_dir = results_dir or Path("results")
@@ -79,14 +79,14 @@ class LMStudioEvaluator:
         progress_bar: bool = True,
     ) -> EvalMetrics:
         """
-        Évalue avec forced-choice (réponse parmi A/B/C/D).
+        Evaluates with forced-choice (answer among A/B/C/D).
         
         Args:
-            model_id: ID du modèle
-            samples: Liste de samples avec 'prompt' et 'expected'
-            system_prompt: Prompt système
-            choices: Choix valides
-            progress_bar: Afficher progression
+            model_id: Model ID
+            samples: List of samples with 'prompt' and 'expected'
+            system_prompt: System prompt
+            choices: Valid choices
+            progress_bar: Display progress
             
         Returns:
             EvalMetrics
@@ -115,7 +115,7 @@ class LMStudioEvaluator:
             else:
                 predictions.append(None)
         
-        # Calculer l'accuracy
+        # Calculate accuracy
         correct = sum(
             1 for pred, sample in zip(predictions, samples)
             if pred and pred == sample.get("expected")
@@ -138,15 +138,15 @@ class LMStudioEvaluator:
         progress_bar: bool = True,
     ) -> EvalMetrics:
         """
-        Évalue une tâche de classification.
+        Evaluates a classification task.
         
         Args:
-            model_id: ID du modèle
-            samples: Liste de samples avec 'text' et 'label'
-            system_prompt: Prompt système
-            labels: Labels possibles
-            parse_fn: Fonction pour parser la réponse
-            progress_bar: Afficher progression
+            model_id: Model ID
+            samples: List of samples with 'text' and 'label'
+            system_prompt: System prompt
+            labels: Possible labels
+            parse_fn: Function to parse the response
+            progress_bar: Display progress
             
         Returns:
             EvalMetrics
@@ -179,7 +179,7 @@ class LMStudioEvaluator:
             else:
                 predictions.append(None)
         
-        # Calculer l'accuracy
+        # Calculate accuracy
         correct = sum(
             1 for pred, sample in zip(predictions, samples)
             if pred and pred == sample.get("label")
@@ -201,17 +201,17 @@ class LMStudioEvaluator:
         progress_bar: bool = True,
     ) -> dict:
         """
-        Évalue l'extraction JSON.
+        Evaluates JSON extraction.
         
         Args:
-            model_id: ID du modèle
-            samples: Liste de samples avec 'document' et 'expected'
-            system_prompt: Prompt système
-            required_fields: Champs obligatoires
-            progress_bar: Afficher progression
+            model_id: Model ID
+            samples: List of samples with 'document' and 'expected'
+            system_prompt: System prompt
+            required_fields: Required fields
+            progress_bar: Display progress
             
         Returns:
-            Dictionnaire avec métriques
+            Dictionary with metrics
         """
         valid_json_count = 0
         field_accuracy = {field: 0 for field in required_fields}
@@ -256,7 +256,7 @@ class LMStudioEvaluator:
         }
     
     def _parse_choice(self, content: str, choices: list[str]) -> Optional[str]:
-        """Parse un choix parmi les options."""
+        """Parses a choice among the options."""
         content = content.strip().upper()
         
         for choice in choices:
@@ -266,7 +266,7 @@ class LMStudioEvaluator:
         return None
     
     def _parse_label(self, content: str, labels: list[str]) -> Optional[str]:
-        """Parse un label parmi les options."""
+        """Parses a label among the options."""
         content = content.strip().lower()
         
         for label in labels:
@@ -281,7 +281,7 @@ class LMStudioEvaluator:
         task_name: str,
         model_id: str,
     ):
-        """Sauvegarde les résultats."""
+        """Saves the results."""
         model_name = model_id.replace("/", "_")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"eval_{task_name}_{model_name}_{timestamp}.json"

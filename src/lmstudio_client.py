@@ -2,7 +2,7 @@
 LM Studio API Client
 ====================
 
-Client REST API pour LM Studio avec support des métriques de performance:
+REST API client for LM Studio with performance metrics support:
 - TTFT (Time To First Token)
 - Tokens per second (output/prompt)
 - Streaming support
@@ -22,11 +22,11 @@ from openai import OpenAI
 
 @dataclass
 class CompletionMetrics:
-    """Métriques collectées lors d'une complétion."""
+    """Metrics collected during a completion request."""
     
     # Timing
     ttft_ms: float = 0.0                    # Time to first token (ms)
-    total_time_ms: float = 0.0              # Temps total de génération
+    total_time_ms: float = 0.0              # Total generation time (ms)
     
     # Tokens
     prompt_tokens: int = 0
@@ -45,7 +45,7 @@ class CompletionMetrics:
     raw_stats: dict = field(default_factory=dict)
     
     def to_dict(self) -> dict:
-        """Convertit les métriques en dictionnaire."""
+        """Convert metrics to a dictionary."""
         return {
             "ttft_ms": self.ttft_ms,
             "total_time_ms": self.total_time_ms,
@@ -62,19 +62,19 @@ class CompletionMetrics:
 
 @dataclass
 class CompletionResult:
-    """Résultat d'une complétion avec métriques."""
+    """Completion result with associated metrics."""
     
     content: str
     metrics: CompletionMetrics
     success: bool = True
     error: Optional[str] = None
     
-    # Pour structured output
+    # For structured output
     json_valid: bool = False
     parsed_json: Optional[dict] = None
     
     def to_dict(self) -> dict:
-        """Convertit le résultat en dictionnaire."""
+        """Convert result to a dictionary."""
         return {
             "content": self.content,
             "metrics": self.metrics.to_dict(),
@@ -87,10 +87,10 @@ class CompletionResult:
 
 class LMStudioClient:
     """
-    Client pour l'API LM Studio.
+    Client for the LM Studio API.
     
-    Compatible avec l'API OpenAI pour les chat completions.
-    Collecte automatiquement les métriques de performance.
+    Compatible with the OpenAI API for chat completions.
+    Automatically collects performance metrics.
     """
     
     def __init__(
@@ -100,37 +100,37 @@ class LMStudioClient:
         config_path: Optional[Path] = None,
     ):
         """
-        Initialise le client LM Studio.
+        Initialize the LM Studio client.
         
         Args:
-            base_url: URL de base de l'API LM Studio
-            timeout: Timeout en secondes pour les requêtes
-            config_path: Chemin vers le fichier de configuration des modèles
+            base_url: Base URL of the LM Studio API
+            timeout: Timeout in seconds for requests
+            config_path: Path to the models configuration file
         """
         self.base_url = base_url
         self.timeout = timeout
         
-        # Client OpenAI-compatible
+        # OpenAI-compatible client
         self.client = OpenAI(
             base_url=base_url,
-            api_key="lm-studio",  # LM Studio n'exige pas de clé
+            api_key="lm-studio",  # LM Studio does not require an API key
             timeout=timeout,
         )
         
-        # Client HTTP pour les requêtes directes
+        # HTTP client for direct requests
         self.http_client = httpx.Client(
             base_url=base_url.replace("/v1", ""),
             timeout=timeout,
         )
         
-        # Charger la configuration des modèles si fournie
+        # Load model configuration if provided
         self.models_config = {}
         if config_path and config_path.exists():
             with open(config_path) as f:
                 self.models_config = yaml.safe_load(f)
     
     def list_models(self) -> list[dict]:
-        """Liste les modèles disponibles sur LM Studio."""
+        """List available models on LM Studio."""
         try:
             response = self.client.models.list()
             return [{"id": m.id, "object": m.object} for m in response.data]
@@ -138,7 +138,7 @@ class LMStudioClient:
             return [{"error": str(e)}]
     
     def get_model_info(self, model_id: str) -> dict:
-        """Récupère les informations d'un modèle."""
+        """Retrieve information about a model."""
         try:
             response = self.http_client.get(f"/v1/models/{model_id}")
             return response.json()
@@ -147,13 +147,13 @@ class LMStudioClient:
     
     def load_model(self, model_id: str) -> bool:
         """
-        Charge un modèle dans LM Studio.
+        Load a model in LM Studio.
         
-        Note: Nécessite que LM Studio supporte le chargement via API.
+        Note: Requires LM Studio to support loading via API.
         """
         try:
-            # LM Studio charge automatiquement le modèle à la première requête
-            # On fait une requête minimale pour forcer le chargement
+            # LM Studio automatically loads the model on the first request
+            # We make a minimal request to force loading
             self.client.chat.completions.create(
                 model=model_id,
                 messages=[{"role": "user", "content": "test"}],
@@ -176,20 +176,20 @@ class LMStudioClient:
         **kwargs,
     ) -> CompletionResult:
         """
-        Effectue une complétion avec collecte de métriques.
+        Perform a completion with metrics collection.
         
         Args:
-            model: ID du modèle LM Studio
-            messages: Liste de messages (format OpenAI)
-            temperature: Température d'échantillonnage
+            model: LM Studio model ID
+            messages: List of messages (OpenAI format)
+            temperature: Sampling temperature
             top_p: Top-p sampling
-            max_tokens: Nombre maximum de tokens en sortie
-            stream: Utiliser le streaming (recommandé pour TTFT)
-            response_format: Format de réponse (ex: {"type": "json_object"})
-            stop: Séquences d'arrêt
+            max_tokens: Maximum number of output tokens
+            stream: Use streaming (recommended for TTFT measurement)
+            response_format: Response format (e.g., {"type": "json_object"})
+            stop: Stop sequences
             
         Returns:
-            CompletionResult avec contenu et métriques
+            CompletionResult with content and metrics
         """
         metrics = CompletionMetrics(model=model)
         
@@ -198,8 +198,8 @@ class LMStudioClient:
             first_token_time = None
             content_chunks = []
             
-            # Construire les paramètres de base
-            # Note: LM Studio n'accepte pas response_format=null, on l'omet si None
+            # Build base parameters
+            # Note: LM Studio does not accept response_format=null, we omit it if None
             base_params = {
                 "model": model,
                 "messages": messages,
@@ -208,17 +208,17 @@ class LMStudioClient:
                 "max_tokens": max_tokens,
             }
             
-            # Ajouter les paramètres optionnels seulement s'ils sont définis
+            # Add optional parameters only if defined
             if response_format is not None:
                 base_params["response_format"] = response_format
             if stop is not None:
                 base_params["stop"] = stop
             
-            # Ajouter les kwargs
+            # Add kwargs
             base_params.update(kwargs)
             
             if stream:
-                # Mode streaming pour mesurer TTFT précisément
+                # Streaming mode for precise TTFT measurement
                 response = self.client.chat.completions.create(
                     stream=True,
                     **base_params,
@@ -234,14 +234,14 @@ class LMStudioClient:
                     if chunk.choices and chunk.choices[0].delta.content:
                         content_chunks.append(chunk.choices[0].delta.content)
                     
-                    # Récupérer finish_reason du dernier chunk
+                    # Get finish_reason from the last chunk
                     if chunk.choices and chunk.choices[0].finish_reason:
                         metrics.finish_reason = chunk.choices[0].finish_reason
                 
                 content = "".join(content_chunks)
                 
             else:
-                # Mode non-streaming
+                # Non-streaming mode
                 response = self.client.chat.completions.create(
                     stream=False,
                     **base_params,
@@ -253,7 +253,7 @@ class LMStudioClient:
                 content = response.choices[0].message.content or ""
                 metrics.finish_reason = response.choices[0].finish_reason or ""
                 
-                # Métriques d'usage
+                # Usage metrics
                 if response.usage:
                     metrics.prompt_tokens = response.usage.prompt_tokens
                     metrics.completion_tokens = response.usage.completion_tokens
@@ -262,11 +262,11 @@ class LMStudioClient:
             end_time = time.perf_counter()
             metrics.total_time_ms = (end_time - start_time) * 1000
             
-            # Calculer le throughput
+            # Calculate throughput
             if metrics.total_time_ms > 0:
-                # Estimer les tokens de complétion si pas fournis
+                # Estimate completion tokens if not provided
                 if metrics.completion_tokens == 0:
-                    # Estimation grossière: ~4 caractères par token
+                    # Rough estimation: ~4 characters per token
                     metrics.completion_tokens = len(content) // 4
                 
                 generation_time_sec = (end_time - (first_token_time or start_time))
@@ -278,8 +278,8 @@ class LMStudioClient:
                     if prompt_time_sec > 0:
                         metrics.prompt_tokens_per_sec = metrics.prompt_tokens / prompt_time_sec
             
-            # Vérifier si JSON valide (pour structured output)
-            # Supporte json_object (OpenAI) et json_schema (LM Studio)
+            # Check if valid JSON (for structured output)
+            # Supports json_object (OpenAI) and json_schema (LM Studio)
             json_valid = False
             parsed_json = None
             if response_format and response_format.get("type") in ("json_object", "json_schema"):
@@ -314,7 +314,7 @@ class LMStudioClient:
         **kwargs,
     ) -> CompletionResult:
         """
-        Complétion avec retry automatique en cas d'erreur.
+        Completion with automatic retry on error.
         """
         last_error = None
         for attempt in range(max_retries):
@@ -322,7 +322,7 @@ class LMStudioClient:
             if result.success:
                 return result
             last_error = result.error
-            time.sleep(1 * (attempt + 1))  # Backoff exponentiel simple
+            time.sleep(1 * (attempt + 1))  # Simple exponential backoff
         
         return CompletionResult(
             content="",
@@ -333,14 +333,14 @@ class LMStudioClient:
     
     def warmup(self, model: str, num_requests: int = 3) -> list[CompletionMetrics]:
         """
-        Effectue des requêtes de warm-up (non comptées dans les benchmarks).
+        Perform warm-up requests (not counted in benchmarks).
         
         Args:
-            model: ID du modèle
-            num_requests: Nombre de requêtes de warm-up
+            model: Model ID
+            num_requests: Number of warm-up requests
             
         Returns:
-            Liste des métriques des requêtes de warm-up
+            List of metrics from warm-up requests
         """
         warmup_metrics = []
         warmup_message = [{"role": "user", "content": "Hello, this is a warmup request."}]
@@ -365,15 +365,15 @@ class LMStudioClient:
         **kwargs,
     ) -> Generator[CompletionResult, None, None]:
         """
-        Effectue plusieurs complétions avec cooldown entre chaque.
+        Perform multiple completions with cooldown between each.
         
         Args:
-            model: ID du modèle
-            prompts: Liste de listes de messages
-            cooldown: Temps de pause entre les requêtes (secondes)
+            model: Model ID
+            prompts: List of message lists
+            cooldown: Pause time between requests (seconds)
             
         Yields:
-            CompletionResult pour chaque prompt
+            CompletionResult for each prompt
         """
         for i, messages in enumerate(prompts):
             result = self.complete(model=model, messages=messages, **kwargs)
@@ -383,7 +383,7 @@ class LMStudioClient:
                 time.sleep(cooldown)
     
     def health_check(self) -> dict:
-        """Vérifie la santé du serveur LM Studio."""
+        """Check the health of the LM Studio server."""
         try:
             response = self.http_client.get("/v1/models")
             return {
@@ -397,7 +397,7 @@ class LMStudioClient:
             }
     
     def close(self):
-        """Ferme les connexions HTTP."""
+        """Close HTTP connections."""
         self.http_client.close()
     
     def __enter__(self):
@@ -407,21 +407,21 @@ class LMStudioClient:
         self.close()
 
 
-# Fonctions utilitaires
+# Utility functions
 
 def format_messages(
     user_content: str,
     system_prompt: Optional[str] = None,
 ) -> list[dict]:
     """
-    Formate les messages pour l'API chat.
+    Format messages for the chat API.
     
     Args:
-        user_content: Contenu du message utilisateur
-        system_prompt: Prompt système optionnel
+        user_content: User message content
+        system_prompt: Optional system prompt
         
     Returns:
-        Liste de messages formatés
+        List of formatted messages
     """
     messages = []
     if system_prompt:
@@ -436,15 +436,15 @@ def create_classification_prompt(
     instruction: Optional[str] = None,
 ) -> str:
     """
-    Crée un prompt pour une tâche de classification.
+    Create a prompt for a classification task.
     
     Args:
-        text: Texte à classifier
-        labels: Labels possibles
-        instruction: Instruction personnalisée
+        text: Text to classify
+        labels: Possible labels
+        instruction: Custom instruction
         
     Returns:
-        Prompt formaté
+        Formatted prompt
     """
     if instruction is None:
         instruction = "Classify the following text."

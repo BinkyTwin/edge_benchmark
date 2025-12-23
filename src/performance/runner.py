@@ -2,8 +2,8 @@
 Performance Runner
 ==================
 
-Orchestrateur principal pour les benchmarks de performance.
-Exécute les scénarios avec collecte de métriques et logging.
+Main orchestrator for performance benchmarks.
+Executes scenarios with metrics collection and logging.
 """
 
 import json
@@ -26,7 +26,7 @@ from .scenarios import ScenarioExecutor, ScenarioConfig
 
 @dataclass
 class BenchmarkConfig:
-    """Configuration d'un benchmark."""
+    """Benchmark configuration."""
     
     warmup_runs: int = 3
     benchmark_runs: int = 20
@@ -34,12 +34,12 @@ class BenchmarkConfig:
     stream: bool = True
     temperature: float = 0
     top_p: float = 1
-    seed: int = 42  # Seed pour reproductibilité
+    seed: int = 42  # Seed for reproducibility
 
 
 @dataclass
 class BenchmarkResult:
-    """Résultat d'un benchmark complet."""
+    """Result of a complete benchmark."""
     
     model_id: str
     scenario_name: str
@@ -49,27 +49,27 @@ class BenchmarkResult:
     timestamp: str
     duration_seconds: float
     
-    # Métadonnées du modèle (format, quantization)
+    # Model metadata (format, quantization)
     model_format: str = "unknown"           # mlx, gguf
     model_quantization: str = "unknown"     # 4bit, Q4_K_M, etc.
-    model_config_key: str = ""              # Clé unique dans models.yaml
-    model_display_name: str = ""            # Nom d'affichage
+    model_config_key: str = ""              # Unique key in models.yaml
+    model_display_name: str = ""            # Display name
     
-    # Métriques spécifiques au scénario
+    # Scenario-specific metrics
     json_valid_rate: Optional[float] = None
     
-    # Statistiques avancées (IC 95%)
+    # Advanced statistics (95% CI)
     confidence_intervals: Optional[dict] = None
     
-    # Environnement pour reproductibilité
+    # Environment for reproducibility
     environment: Optional[dict] = None
     
     def get_filename_suffix(self) -> str:
-        """Retourne le suffixe pour les noms de fichiers (ex: MLX_4bit)."""
+        """Return suffix for filenames (e.g., MLX_4bit)."""
         return f"{self.model_format.upper()}_{self.model_quantization}"
     
     def to_dict(self) -> dict:
-        """Convertit en dictionnaire."""
+        """Convert to dictionary."""
         return {
             "model_id": self.model_id,
             "model_format": self.model_format,
@@ -98,10 +98,10 @@ class BenchmarkResult:
 
 class PerformanceRunner:
     """
-    Orchestrateur de benchmarks de performance.
+    Performance benchmark orchestrator.
     
-    Gère l'exécution des scénarios, la collecte des métriques,
-    et le logging des résultats.
+    Manages scenario execution, metrics collection,
+    and results logging.
     """
     
     def __init__(
@@ -112,9 +112,9 @@ class PerformanceRunner:
     ):
         """
         Args:
-            client: Client LM Studio
-            scenarios_config_path: Chemin vers scenarios.yaml
-            results_dir: Dossier pour les résultats
+            client: LM Studio client
+            scenarios_config_path: Path to scenarios.yaml
+            results_dir: Directory for results
         """
         self.client = client
         self.scenario_executor = ScenarioExecutor(scenarios_config_path)
@@ -130,17 +130,17 @@ class PerformanceRunner:
         model_info: Optional[dict] = None,
     ) -> BenchmarkResult:
         """
-        Exécute un scénario de benchmark pour un modèle.
+        Execute a benchmark scenario for a model.
         
         Args:
-            model_id: ID du modèle LM Studio
-            scenario_name: Nom du scénario à exécuter
-            config: Configuration du benchmark
-            progress_bar: Afficher une barre de progression
-            model_info: Métadonnées du modèle (format, quantization, etc.)
+            model_id: LM Studio model ID
+            scenario_name: Name of the scenario to execute
+            config: Benchmark configuration
+            progress_bar: Display a progress bar
+            model_info: Model metadata (format, quantization, etc.)
             
         Returns:
-            BenchmarkResult avec métriques agrégées
+            BenchmarkResult with aggregated metrics
         """
         config = config or BenchmarkConfig()
         scenario = self.scenario_executor.get_scenario(scenario_name)
@@ -149,7 +149,7 @@ class PerformanceRunner:
         if not scenario:
             raise ValueError(f"Unknown scenario: {scenario_name}")
         
-        # Afficher les informations du modèle
+        # Display model information
         display_name = model_info.get("display_name", model_id)
         model_format = model_info.get("format", "unknown").upper()
         quantization = model_info.get("quantization", "unknown")
@@ -161,7 +161,7 @@ class PerformanceRunner:
         print(f"Category: {scenario.category}")
         print(f"{'='*60}")
         
-        # Vérification préliminaire que le modèle peut répondre
+        # Preliminary check that the model can respond
         print(f"\n[Check] Testing model availability...")
         test_result = self.client.complete(
             model=model_id,
@@ -187,7 +187,7 @@ class PerformanceRunner:
         raw_results = []
         json_valid_count = 0
         
-        # Obtenir les prompts
+        # Get prompts
         prompts = self.scenario_executor.get_prompts(
             scenario_name, 
             num_prompts=config.benchmark_runs
@@ -204,7 +204,7 @@ class PerformanceRunner:
         iterator = tqdm(prompts, desc="Benchmarking") if progress_bar else prompts
         
         for prompt_data in iterator:
-            # Monitoring mémoire
+            # Memory monitoring
             with MemoryMonitor(sample_interval=0.05) as mem_monitor:
                 result = self.client.complete(
                     model=model_id,
@@ -217,12 +217,12 @@ class PerformanceRunner:
                 )
                 mem_stats = mem_monitor.stop()
             
-            # Log erreur si échec
+            # Log error if failure
             if not result.success:
                 error_msg = result.error or "Unknown error"
                 tqdm.write(f"[ERROR] Run failed: {error_msg[:100]}")
             
-            # Collecter les métriques
+            # Collect metrics
             collector.add_run(
                 ttft_ms=result.metrics.ttft_ms,
                 total_time_ms=result.metrics.total_time_ms,
@@ -235,7 +235,7 @@ class PerformanceRunner:
                 peak_ram_mb=mem_stats.get("peak_ram_mb", 0),
             )
             
-            # Valider JSON si applicable
+            # Validate JSON if applicable
             if prompt_data.get("response_format"):
                 validation = self.scenario_executor.validate_json_output(
                     result.content,
@@ -244,7 +244,7 @@ class PerformanceRunner:
                 if validation["is_valid"]:
                     json_valid_count += 1
             
-            # Stocker le résultat brut
+            # Store raw result
             raw_results.append({
                 "content_preview": result.content[:200] if result.content else "",
                 "metrics": result.metrics.to_dict(),
@@ -256,16 +256,16 @@ class PerformanceRunner:
             # Cooldown
             time.sleep(config.cooldown_seconds)
         
-        # Agréger les métriques
+        # Aggregate metrics
         aggregated = collector.aggregate()
         duration = time.time() - start_time
         
-        # Calculer le taux de JSON valides
+        # Calculate valid JSON rate
         json_valid_rate = None
         if scenario.use_structured_output:
             json_valid_rate = json_valid_count / len(prompts) if prompts else 0
         
-        # Calculer les intervalles de confiance (IC 95%)
+        # Calculate confidence intervals (95% CI)
         confidence_intervals = self._compute_confidence_intervals(collector.get_raw_data())
         
         result = BenchmarkResult(
@@ -284,7 +284,7 @@ class PerformanceRunner:
             confidence_intervals=confidence_intervals,
         )
         
-        # Afficher le résumé
+        # Display summary
         self._print_summary(result)
         
         return result
@@ -296,15 +296,15 @@ class PerformanceRunner:
         config: Optional[BenchmarkConfig] = None,
     ) -> list[BenchmarkResult]:
         """
-        Exécute tous les scénarios pour un modèle.
+        Execute all scenarios for a model.
         
         Args:
-            model_id: ID du modèle
-            scenarios: Liste de scénarios (None = tous)
-            config: Configuration du benchmark
+            model_id: Model ID
+            scenarios: List of scenarios (None = all)
+            config: Benchmark configuration
             
         Returns:
-            Liste de BenchmarkResult
+            List of BenchmarkResult
         """
         scenarios = scenarios or self.scenario_executor.list_scenarios()
         results = []
@@ -323,15 +323,15 @@ class PerformanceRunner:
         config: Optional[BenchmarkConfig] = None,
     ) -> dict[str, BenchmarkResult]:
         """
-        Compare plusieurs modèles sur un scénario.
+        Compare multiple models on a scenario.
         
         Args:
-            model_ids: Liste des IDs de modèles
-            scenario_name: Nom du scénario
-            config: Configuration du benchmark
+            model_ids: List of model IDs
+            scenario_name: Scenario name
+            config: Benchmark configuration
             
         Returns:
-            Dictionnaire model_id -> BenchmarkResult
+            Dictionary model_id -> BenchmarkResult
         """
         results = {}
         
@@ -344,21 +344,21 @@ class PerformanceRunner:
             results[model_id] = result
             self.save_result(result)
         
-        # Afficher la comparaison
+        # Display comparison
         self._print_comparison(results, scenario_name)
         
         return results
     
     def save_result(self, result: BenchmarkResult, filename: Optional[str] = None):
         """
-        Sauvegarde un résultat en JSONL.
+        Save a result in JSONL format.
         
-        Le nom de fichier inclut le format (MLX/GGUF) pour distinguer les résultats.
+        The filename includes the format (MLX/GGUF) to distinguish results.
         Format: perf_{model}_{FORMAT}_{quantization}_{scenario}_{timestamp}.jsonl
         
         Args:
-            result: Résultat à sauvegarder
-            filename: Nom du fichier (auto-généré si None)
+            result: Result to save
+            filename: Filename (auto-generated if None)
         """
         if filename is None:
             model_name = result.model_id.replace("/", "_")
@@ -379,11 +379,11 @@ class PerformanceRunner:
         filename: str = "comparison.csv",
     ):
         """
-        Sauvegarde une comparaison de modèles en CSV.
+        Save a model comparison as CSV.
         
         Args:
-            results: Dictionnaire model_id -> BenchmarkResult
-            filename: Nom du fichier CSV
+            results: Dictionary model_id -> BenchmarkResult
+            filename: CSV filename
         """
         import pandas as pd
         
@@ -410,20 +410,20 @@ class PerformanceRunner:
     
     def _compute_confidence_intervals(self, raw_data: list[dict]) -> dict:
         """
-        Calcule les intervalles de confiance 95% pour les métriques clés.
+        Calculate 95% confidence intervals for key metrics.
         
-        Utilise bootstrap pour robustesse (pas d'hypothèse de normalité).
+        Uses bootstrap for robustness (no normality assumption).
         
         Args:
-            raw_data: Données brutes des runs
+            raw_data: Raw data from runs
             
         Returns:
-            Dictionnaire avec IC pour chaque métrique
+            Dictionary with CI for each metric
         """
         if not raw_data:
             return {}
         
-        # Extraire les valeurs des runs réussis
+        # Extract values from successful runs
         successful = [r for r in raw_data if r.get("success", True)]
         if len(successful) < 3:
             return {"error": "insufficient_data"}
@@ -456,18 +456,18 @@ class PerformanceRunner:
         metric: str = "ttft_ms",
     ) -> list:
         """
-        Compare statistiquement plusieurs modèles.
+        Statistically compare multiple models.
         
         Args:
             results: Dict model_id -> BenchmarkResult
-            metric: Métrique à comparer
+            metric: Metric to compare
             
         Returns:
-            Liste de comparaisons avec tests de significativité
+            List of comparisons with significance tests
         """
         analyzer = StatisticalAnalyzer()
         
-        # Extraire les données par modèle
+        # Extract data by model
         models_data = {}
         for model_id, result in results.items():
             raw = result.raw_results
@@ -482,17 +482,17 @@ class PerformanceRunner:
         if len(models_data) < 2:
             return []
         
-        # Comparer tous les modèles
+        # Compare all models
         comparisons = analyzer.compare_all_models(
             models_data=models_data,
             metric_name=metric,
-            paired=True,  # Mêmes prompts utilisés
+            paired=True,  # Same prompts used
         )
         
         return comparisons
     
     def _print_summary(self, result: BenchmarkResult):
-        """Affiche un résumé des résultats."""
+        """Display a results summary."""
         metrics = result.metrics
         ci = result.confidence_intervals or {}
         
@@ -500,7 +500,7 @@ class PerformanceRunner:
         print("RESULTS SUMMARY")
         print(f"{'─'*40}")
         
-        # TTFT avec IC
+        # TTFT with CI
         ttft_ci = ci.get("ttft_ms", {})
         if ttft_ci and "lower" in ttft_ci:
             print(f"TTFT:           {metrics.ttft_mean_ms:.1f} ms [95% CI: {ttft_ci['lower']:.1f}, {ttft_ci['upper']:.1f}]")
@@ -509,7 +509,7 @@ class PerformanceRunner:
         
         print(f"TTFT (p95):     {metrics.ttft_p95_ms:.1f} ms")
         
-        # Tokens/s avec IC
+        # Tokens/s with CI
         tps_ci = ci.get("output_tokens_per_sec", {})
         if tps_ci and "lower" in tps_ci:
             print(f"Output t/s:     {metrics.output_tps_mean:.1f} [95% CI: {tps_ci['lower']:.1f}, {tps_ci['upper']:.1f}]")
@@ -526,7 +526,7 @@ class PerformanceRunner:
         print(f"{'─'*40}")
     
     def _print_comparison(self, results: dict[str, BenchmarkResult], scenario_name: str):
-        """Affiche une comparaison des modèles."""
+        """Display a model comparison."""
         print(f"\n{'='*60}")
         print(f"COMPARISON - {scenario_name}")
         print(f"{'='*60}")

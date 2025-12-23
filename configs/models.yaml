@@ -1,15 +1,15 @@
 # Edge SLM Benchmark - Models Configuration
-# Définition standardisée des modèles à évaluer (GGUF + MLX)
+# Standardized model definitions for evaluation (GGUF + MLX)
 
-# Paramètres globaux d'échantillonnage (uniformes pour tous les modèles)
+# Global sampling parameters (uniform for all models)
 sampling_defaults: &sampling_defaults
   temperature: 0
   top_p: 1
   max_tokens: 512
   
-# Context window effectif standardisé pour comparaison équitable
+# Standardized effective context window for fair comparison
 context_defaults: &context_defaults
-  effective_context: 8192  # Standardisé pour tous les tests
+  effective_context: 8192  # Standardized for all tests
 
 models:
   # === GEMMA 3n E4B ===
@@ -98,7 +98,7 @@ models:
     license: "Apache 2.0"
     license_type: "permissive"
 
-# Groupes de modèles pour comparaisons
+# Model groups for comparisons
 model_groups:
   all_models:
     - gemma_3n_e4b_mlx
@@ -116,7 +116,7 @@ model_groups:
     - gemma_3n_e4b_mlx
     - qwen3_vl_4b_mlx
 
-  # Pour comparaison GGUF vs MLX (même modèle, formats différents)
+  # For GGUF vs MLX comparison (same model, different formats)
   format_comparison:
     gemma:
       - gemma_3n_e4b_mlx

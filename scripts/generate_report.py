@@ -3,7 +3,7 @@
 Generate Benchmark Report
 =========================
 
-Génère un rapport consolidé des résultats de benchmark.
+Generate a consolidated benchmark results report.
 
 Usage:
     python scripts/generate_report.py --input results/ --output report/
@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Ajouter le répertoire parent au path
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
@@ -26,10 +26,10 @@ import pandas as pd
 
 class ReportGenerator:
     """
-    Générateur de rapports pour les benchmarks SLM.
+    Report generator for SLM benchmarks.
     
-    Consolide les résultats de performance, capacités et conformité
-    en un rapport lisible et exportable.
+    Consolidates performance, capability, and compliance results
+    into a readable and exportable report.
     """
     
     def __init__(
@@ -41,13 +41,13 @@ class ReportGenerator:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Données chargées
+        # Loaded data
         self.performance_results = []
         self.capability_results = []
         self.compliance_results = {}
     
     def load_results(self):
-        """Charge tous les résultats depuis le dossier results."""
+        """Load all results from the results directory."""
         print("[Loading] Scanning results directory...")
         
         # Performance results (JSONL)
@@ -88,7 +88,7 @@ class ReportGenerator:
         print(f"[Loaded] {len(self.compliance_results)} compliance reports")
     
     def generate_performance_table(self) -> pd.DataFrame:
-        """Génère le tableau de résultats de performance."""
+        """Generate the performance results table."""
         if not self.performance_results:
             return pd.DataFrame()
         
@@ -110,14 +110,14 @@ class ReportGenerator:
         return df
     
     def generate_capability_table(self) -> pd.DataFrame:
-        """Génère le tableau de résultats de capacités."""
+        """Generate the capability results table."""
         if not self.capability_results:
             return pd.DataFrame()
         
         rows = []
         for result in self.capability_results:
             if result.get("type") == "realistic_scenarios":
-                continue  # Traité séparément
+                continue  # Handled separately
             
             row = {
                 "Model": result.get("model_id", "Unknown"),
@@ -133,7 +133,7 @@ class ReportGenerator:
         return df
     
     def generate_markdown_report(self) -> str:
-        """Génère un rapport au format Markdown."""
+        """Generate a report in Markdown format."""
         lines = []
         
         # Header
@@ -224,10 +224,10 @@ class ReportGenerator:
         return "\n".join(lines)
     
     def generate_html_report(self) -> str:
-        """Génère un rapport au format HTML avec de vrais tableaux."""
+        """Generate a report in HTML format with real tables."""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Générer les tableaux HTML
+        # Generate HTML tables
         perf_df = self.generate_performance_table()
         cap_df = self.generate_capability_table()
         
@@ -236,16 +236,16 @@ class ReportGenerator:
             classes='data-table',
             border=0,
             float_format=lambda x: f'{x:.2f}' if isinstance(x, float) else x
-        ) if not perf_df.empty else '<p class="no-data">Aucun résultat de performance disponible.</p>'
+        ) if not perf_df.empty else '<p class="no-data">No performance results available.</p>'
         
         cap_table_html = cap_df.to_html(
             index=False,
             classes='data-table',
             border=0,
             float_format=lambda x: f'{x:.4f}' if isinstance(x, float) else x
-        ) if not cap_df.empty else '<p class="no-data">Aucun résultat de capacité disponible.</p>'
+        ) if not cap_df.empty else '<p class="no-data">No capability results available.</p>'
         
-        # Générer la section compliance si disponible
+        # Generate compliance section if available
         compliance_html = ""
         if self.compliance_results:
             compliance_html = '<section class="section"><h2>Compliance Analysis</h2>'
@@ -503,7 +503,7 @@ class ReportGenerator:
         return html
     
     def generate_csv_exports(self):
-        """Exporte les tableaux en CSV."""
+        """Export tables to CSV."""
         # Performance
         perf_df = self.generate_performance_table()
         if not perf_df.empty:
@@ -520,10 +520,10 @@ class ReportGenerator:
     
     def save_report(self, format: str = "markdown") -> Path:
         """
-        Sauvegarde le rapport.
+        Save the report.
         
         Args:
-            format: 'markdown', 'html', ou 'all'
+            format: 'markdown', 'html', or 'all'
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
@@ -541,7 +541,7 @@ class ReportGenerator:
                 f.write(html_content)
             print(f"[Saved] HTML report: {html_path}")
         
-        # Toujours exporter les CSV
+        # Always export CSV files
         self.generate_csv_exports()
         
         return self.output_dir
@@ -587,7 +587,7 @@ def main():
     print(f"Format: {args.format}")
     print("=" * 60)
     
-    # Générer le rapport
+    # Generate report
     generator = ReportGenerator(
         results_dir=args.input,
         output_dir=args.output,
@@ -596,7 +596,7 @@ def main():
     generator.load_results()
     output_path = generator.save_report(format=args.format)
     
-    # Générer les rapports de conformité si demandé
+    # Generate compliance reports if requested
     if args.compliance:
         print("\n[Compliance] Generating compliance reports...")
         

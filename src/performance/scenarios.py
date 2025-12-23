@@ -2,7 +2,7 @@
 Performance Scenarios
 =====================
 
-Définition et exécution des 3 scénarios de benchmark performance:
+Definition and execution of 3 performance benchmark scenarios:
 1. Interactive Assistant (latency-sensitive)
 2. Long-form Summarization (throughput-sensitive)
 3. Structured JSON Output (reliability-sensitive)
@@ -19,13 +19,13 @@ import yaml
 
 @dataclass
 class ScenarioConfig:
-    """Configuration d'un scénario de performance."""
+    """Configuration of a performance scenario."""
     
     name: str
     description: str
     category: str
     
-    # Paramètres de génération
+    # Generation parameters
     input_tokens_min: int
     input_tokens_max: int
     output_tokens: int
@@ -35,17 +35,17 @@ class ScenarioConfig:
     use_structured_output: bool = False
     response_format: Optional[dict] = None
     
-    # Métriques prioritaires
+    # Priority metrics
     metrics_focus: list[str] = None
     
-    # Seuils de qualité
+    # Quality thresholds
     quality_thresholds: dict = None
 
 
-# === PROMPTS PAR SCÉNARIO ===
+# === PROMPTS PER SCENARIO ===
 
 INTERACTIVE_ASSISTANT_PROMPTS = [
-    # Questions bancaires courantes (~200-400 tokens avec contexte)
+    # Common banking questions (~200-400 tokens with context)
     """You are a helpful banking assistant. A customer asks:
 
 "I noticed a charge on my credit card that I don't recognize. It says 'AMZN MKTP US' for $47.99. 
@@ -86,7 +86,7 @@ Please provide a helpful and accurate response.""",
 ]
 
 SUMMARIZATION_PROMPTS = [
-    # Documents longs à résumer (~2000-4000 tokens)
+    # Long documents to summarize (~2000-4000 tokens)
     """Please summarize the following financial report:
 
 QUARTERLY FINANCIAL REPORT - Q3 2024
@@ -165,7 +165,7 @@ Key expectations include:
 Provide a concise 2-3 paragraph summary highlighting the key financial metrics and business developments.""",
 ]
 
-# Prompt système optimisé pour extraction JSON (rôle d'auditeur strict)
+# System prompt optimized for JSON extraction (strict auditor role)
 JSON_EXTRACTION_SYSTEM_PROMPT = """You are a strict financial data auditor.
 Your ONLY goal is to extract raw data from documents into JSON.
 
@@ -176,7 +176,7 @@ RULES FOR DATA INTEGRITY:
 4. STRICT JSON: Output only the JSON object. No preamble, no explanation."""
 
 JSON_EXTRACTION_PROMPTS = [
-    # Documents pour extraction JSON (~500-1000 tokens)
+    # Documents for JSON extraction (~500-1000 tokens)
     {
         "system_prompt": JSON_EXTRACTION_SYSTEM_PROMPT,
         "prompt": """[SOURCE DOCUMENT]
@@ -221,9 +221,9 @@ JSON:""",
             "account_holder", "transaction_type", "amount", "recipient_name",
             "status", "remaining_balance"
         ],
-        # Format LM Studio: json_schema avec strict="true" (STRING, pas boolean!)
+        # LM Studio format: json_schema with strict="true" (STRING, not boolean!)
         # https://lmstudio.ai/docs/developer/openai-compat/structured-output
-        # Note: Pour MLX, Outlines est utilisé. Pour GGUF, llama.cpp grammar.
+        # Note: For MLX, Outlines is used. For GGUF, llama.cpp grammar.
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -294,7 +294,7 @@ JSON:""",
             }
         }
     },
-    # Deuxième exemple: relevé de compte
+    # Second example: account statement
     {
         "system_prompt": JSON_EXTRACTION_SYSTEM_PROMPT,
         "prompt": """[SOURCE DOCUMENT]
@@ -360,15 +360,15 @@ JSON:""",
 
 class ScenarioExecutor:
     """
-    Exécuteur de scénarios de performance.
+    Performance scenario executor.
     
-    Gère la sélection des prompts et l'exécution des scénarios.
+    Manages prompt selection and scenario execution.
     """
     
     def __init__(self, config_path: Optional[Path] = None):
         """
         Args:
-            config_path: Chemin vers scenarios.yaml
+            config_path: Path to scenarios.yaml
         """
         self.scenarios: dict[str, ScenarioConfig] = {}
         
@@ -378,7 +378,7 @@ class ScenarioExecutor:
             self._load_defaults()
     
     def _load_config(self, config_path: Path):
-        """Charge la configuration depuis un fichier YAML."""
+        """Load configuration from a YAML file."""
         with open(config_path) as f:
             config = yaml.safe_load(f)
         
@@ -401,7 +401,7 @@ class ScenarioExecutor:
             )
     
     def _load_defaults(self):
-        """Charge les scénarios par défaut."""
+        """Load default scenarios."""
         self.scenarios = {
             "interactive_assistant": ScenarioConfig(
                 name="Interactive Assistant",
@@ -432,30 +432,30 @@ class ScenarioExecutor:
                 output_tokens=300,
                 max_tokens=300,
                 use_structured_output=True,
-                # LM Studio utilise json_schema au lieu de json_object
-                response_format=None,  # Sera défini par prompt spécifique
+                # LM Studio uses json_schema instead of json_object
+                response_format=None,  # Will be defined by specific prompt
                 metrics_focus=["json_valid_rate", "output_tokens_per_sec"],
             ),
         }
     
     def get_scenario(self, name: str) -> Optional[ScenarioConfig]:
-        """Récupère la configuration d'un scénario."""
+        """Get configuration for a scenario."""
         return self.scenarios.get(name)
     
     def list_scenarios(self) -> list[str]:
-        """Liste les noms des scénarios disponibles."""
+        """List available scenario names."""
         return list(self.scenarios.keys())
     
     def get_prompts(self, scenario_name: str, num_prompts: int = 20) -> list[dict]:
         """
-        Génère les prompts pour un scénario.
+        Generate prompts for a scenario.
         
         Args:
-            scenario_name: Nom du scénario
-            num_prompts: Nombre de prompts à générer
+            scenario_name: Scenario name
+            num_prompts: Number of prompts to generate
             
         Returns:
-            Liste de dictionnaires avec prompt et paramètres
+            List of dictionaries with prompt and parameters
         """
         scenario = self.scenarios.get(scenario_name)
         if not scenario:
@@ -488,13 +488,13 @@ class ScenarioExecutor:
             for i in range(num_prompts):
                 prompt_data = base_prompts[i % len(base_prompts)]
                 
-                # Construire les messages avec system prompt si disponible
+                # Build messages with system prompt if available
                 messages = []
                 if "system_prompt" in prompt_data:
                     messages.append({"role": "system", "content": prompt_data["system_prompt"]})
                 messages.append({"role": "user", "content": prompt_data["prompt"]})
                 
-                # Utiliser le format LM Studio: json_schema avec strict=True
+                # Use LM Studio format: json_schema with strict=True
                 # https://lmstudio.ai/docs/developer/openai-compat/structured-output
                 prompts.append({
                     "messages": messages,
@@ -507,17 +507,17 @@ class ScenarioExecutor:
     
     def validate_json_output(self, content: str, expected_fields: list[str] = None) -> dict:
         """
-        Valide une sortie JSON.
+        Validate a JSON output.
         
-        Note: Un JSON est considéré valide s'il est syntaxiquement correct.
-        Les champs manquants sont reportés mais n'invalident pas le JSON.
+        Note: A JSON is considered valid if it is syntactically correct.
+        Missing fields are reported but do not invalidate the JSON.
         
         Args:
-            content: Contenu à valider
-            expected_fields: Champs attendus (optionnel, pour info seulement)
+            content: Content to validate
+            expected_fields: Expected fields (optional, for info only)
             
         Returns:
-            Dictionnaire avec is_valid, parsed_json, missing_fields, error
+            Dictionary with is_valid, parsed_json, missing_fields, error
         """
         result = {
             "is_valid": False,
@@ -530,10 +530,10 @@ class ScenarioExecutor:
         
         try:
             parsed = json.loads(content)
-            result["is_valid"] = True  # JSON syntaxiquement valide
+            result["is_valid"] = True  # Syntactically valid JSON
             result["parsed_json"] = parsed
             
-            # Vérifier les champs (informatif, n'invalide pas)
+            # Check fields (informative, does not invalidate)
             if expected_fields:
                 result["fields_expected"] = len(expected_fields)
                 present = [f for f in expected_fields if f in parsed]

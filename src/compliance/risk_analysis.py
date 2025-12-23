@@ -2,10 +2,10 @@
 Risk Analysis Module
 ====================
 
-Framework d'analyse de risques pour le déploiement de LLMs
-en environnement bancaire réglementé.
+Risk analysis framework for LLM deployment
+in regulated banking environments.
 
-Basé sur:
+Based on:
 - NIST AI RMF 1.0 (AI Risk Management Framework)
 - NIST AI 600-1 (Generative AI Profile)
 - OWASP Top 10 for LLM Applications
@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 class RiskLevel(Enum):
-    """Niveau de risque."""
+    """Risk level."""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -28,7 +28,7 @@ class RiskLevel(Enum):
 
 
 class RiskCategory(Enum):
-    """Catégorie de risque OWASP Top 10 LLM."""
+    """OWASP Top 10 LLM risk category."""
     LLM01_PROMPT_INJECTION = "LLM01: Prompt Injection"
     LLM02_INSECURE_OUTPUT = "LLM02: Insecure Output Handling"
     LLM03_TRAINING_DATA_POISONING = "LLM03: Training Data Poisoning"
@@ -40,14 +40,14 @@ class RiskCategory(Enum):
     LLM09_OVERRELIANCE = "LLM09: Overreliance"
     LLM10_MODEL_THEFT = "LLM10: Model Theft"
     
-    # Catégories spécifiques on-device
+    # On-device specific categories
     DEVICE_LOSS = "Device Loss/Theft"
     DATA_EXFILTRATION = "Data Exfiltration"
     LICENSING = "Licensing/Compliance"
 
 
 class ControlType(Enum):
-    """Type de contrôle."""
+    """Control type."""
     PREVENTIVE = "preventive"
     DETECTIVE = "detective"
     CORRECTIVE = "corrective"
@@ -55,117 +55,117 @@ class ControlType(Enum):
 
 @dataclass
 class Risk:
-    """Définition d'un risque."""
+    """Risk definition."""
     
     id: str
     category: RiskCategory
     title: str
     description: str
     
-    # Évaluation
+    # Assessment
     likelihood: RiskLevel = RiskLevel.MEDIUM
     impact: RiskLevel = RiskLevel.MEDIUM
     inherent_risk: RiskLevel = RiskLevel.MEDIUM
     
-    # Après contrôles
+    # After controls
     residual_risk: RiskLevel = RiskLevel.LOW
     
-    # Assets impactés
+    # Impacted assets
     assets: list[str] = field(default_factory=list)
     
-    # Références
+    # References
     nist_mapping: list[str] = field(default_factory=list)
     owasp_ref: Optional[str] = None
 
 
 @dataclass
 class Control:
-    """Définition d'un contrôle."""
+    """Control definition."""
     
     id: str
     title: str
     description: str
     control_type: ControlType
     
-    # Risques mitigés
+    # Mitigated risks
     mitigates_risks: list[str] = field(default_factory=list)
     
-    # Implémentation
+    # Implementation
     implementation_status: str = "planned"  # planned, in_progress, implemented
     implementation_notes: str = ""
     
-    # Efficacité
+    # Effectiveness
     effectiveness: str = "medium"  # low, medium, high
 
 
 @dataclass
 class ThreatModel:
-    """Modèle de menaces."""
+    """Threat model."""
     
     # Assets
     assets: dict[str, str] = field(default_factory=dict)
     
-    # Adversaires
+    # Adversaries
     adversaries: list[dict] = field(default_factory=list)
     
-    # Surfaces d'attaque
+    # Attack surfaces
     attack_surfaces: list[str] = field(default_factory=list)
 
 
 class RiskAnalyzer:
     """
-    Analyseur de risques pour le déploiement LLM on-device.
+    Risk analyzer for on-device LLM deployment.
     
-    Génère une analyse structurée basée sur NIST AI RMF + OWASP.
+    Generates a structured analysis based on NIST AI RMF + OWASP.
     """
     
     def __init__(self, output_dir: Optional[Path] = None):
         self.output_dir = output_dir or Path("results/compliance")
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Initialiser les risques et contrôles
+        # Initialize risks and controls
         self.risks = self._init_risks()
         self.controls = self._init_controls()
         self.threat_model = self._init_threat_model()
     
     def _init_threat_model(self) -> ThreatModel:
-        """Initialise le modèle de menaces pour LLM on-device en banque."""
+        """Initializes the threat model for on-device LLM in banking."""
         return ThreatModel(
             assets={
-                "model": "SLM quantifié (GGUF/MLX) déployé sur device",
-                "inference_data": "Données traitées pendant l'inférence (prompts, réponses)",
-                "device": "Laptop Apple Silicon avec le modèle",
-                "logs": "Logs d'inférence et métriques",
-                "credentials": "Éventuelles clés API ou tokens",
+                "model": "Quantized SLM (GGUF/MLX) deployed on device",
+                "inference_data": "Data processed during inference (prompts, responses)",
+                "device": "Apple Silicon laptop with the model",
+                "logs": "Inference logs and metrics",
+                "credentials": "Potential API keys or tokens",
             },
             adversaries=[
                 {
                     "type": "external_attacker",
                     "capability": "medium",
-                    "motivation": "Accès aux données bancaires via prompt injection",
+                    "motivation": "Access to banking data via prompt injection",
                 },
                 {
                     "type": "insider_threat",
                     "capability": "high",
-                    "motivation": "Exfiltration de données via le modèle",
+                    "motivation": "Data exfiltration via the model",
                 },
                 {
                     "type": "device_thief",
                     "capability": "low",
-                    "motivation": "Accès physique au device perdu/volé",
+                    "motivation": "Physical access to lost/stolen device",
                 },
             ],
             attack_surfaces=[
-                "Input utilisateur (prompts) - risque injection",
-                "Documents ingérés dans le contexte",
-                "Sortie du modèle (réponses générées)",
-                "Stockage local (modèle, cache, logs)",
-                "Supply chain du modèle (origine, intégrité)",
+                "User input (prompts) - injection risk",
+                "Documents ingested in context",
+                "Model output (generated responses)",
+                "Local storage (model, cache, logs)",
+                "Model supply chain (origin, integrity)",
             ],
         )
     
     def _init_risks(self) -> list[Risk]:
-        """Initialise les risques spécifiques au contexte on-device banking."""
+        """Initializes risks specific to on-device banking context."""
         return [
             # === PROMPT INJECTION ===
             Risk(
@@ -173,9 +173,9 @@ class RiskAnalyzer:
                 category=RiskCategory.LLM01_PROMPT_INJECTION,
                 title="Prompt Injection via Documents",
                 description="""
-                Un document interne ou externe contenant des instructions malveillantes 
-                pourrait manipuler le modèle pour révéler des informations sensibles 
-                ou exécuter des actions non autorisées.
+                An internal or external document containing malicious instructions 
+                could manipulate the model to reveal sensitive information 
+                or execute unauthorized actions.
                 """,
                 likelihood=RiskLevel.MEDIUM,
                 impact=RiskLevel.HIGH,
@@ -190,11 +190,11 @@ class RiskAnalyzer:
             Risk(
                 id="R02",
                 category=RiskCategory.LLM06_SENSITIVE_INFO_DISCLOSURE,
-                title="Fuite de Données Sensibles via Réponses",
+                title="Sensitive Data Leak via Responses",
                 description="""
-                Le modèle pourrait inclure des informations sensibles (numéros de compte, 
-                données client) dans ses réponses, que ce soit par mémorisation du contexte 
-                ou par génération inappropriée.
+                The model could include sensitive information (account numbers, 
+                client data) in its responses, whether through context memorization 
+                or inappropriate generation.
                 """,
                 likelihood=RiskLevel.MEDIUM,
                 impact=RiskLevel.HIGH,
@@ -211,8 +211,8 @@ class RiskAnalyzer:
                 category=RiskCategory.DEVICE_LOSS,
                 title="Perte ou Vol du Device",
                 description="""
-                Un laptop contenant le modèle et potentiellement des données en cache 
-                pourrait être perdu ou volé, exposant les assets locaux.
+                A laptop containing the model and potentially cached data 
+                could be lost or stolen, exposing local assets.
                 """,
                 likelihood=RiskLevel.LOW,
                 impact=RiskLevel.HIGH,
@@ -226,10 +226,10 @@ class RiskAnalyzer:
             Risk(
                 id="R04",
                 category=RiskCategory.LLM05_SUPPLY_CHAIN,
-                title="Intégrité du Modèle (Supply Chain)",
+                title="Model Integrity (Supply Chain)",
                 description="""
-                Le modèle téléchargé pourrait être modifié, corrompu, ou provenir 
-                d'une source non fiable. Absence de vérification d'intégrité.
+                The downloaded model could be modified, corrupted, or come from 
+                an untrusted source. Lack of integrity verification.
                 """,
                 likelihood=RiskLevel.LOW,
                 impact=RiskLevel.HIGH,
@@ -244,11 +244,11 @@ class RiskAnalyzer:
             Risk(
                 id="R05",
                 category=RiskCategory.LICENSING,
-                title="Non-Conformité Licensing",
+                title="Licensing Non-Compliance",
                 description="""
-                Utilisation de modèles sans vérification des termes de licence, 
-                pouvant entraîner des violations de propriété intellectuelle 
-                ou des restrictions d'usage commercial.
+                Use of models without verification of license terms,
+                potentially leading to intellectual property violations 
+                or commercial use restrictions.
                 """,
                 likelihood=RiskLevel.MEDIUM,
                 impact=RiskLevel.MEDIUM,
@@ -262,11 +262,11 @@ class RiskAnalyzer:
             Risk(
                 id="R06",
                 category=RiskCategory.LLM09_OVERRELIANCE,
-                title="Sur-dépendance aux Réponses du Modèle",
+                title="Over-reliance on Model Responses",
                 description="""
-                Les utilisateurs pourraient faire confiance aveuglément aux réponses 
-                du modèle sans vérification, entraînant des erreurs dans les processus 
-                bancaires critiques.
+                Users could blindly trust the model's responses 
+                without verification, leading to errors in critical 
+                banking processes.
                 """,
                 likelihood=RiskLevel.MEDIUM,
                 impact=RiskLevel.MEDIUM,
@@ -283,8 +283,8 @@ class RiskAnalyzer:
                 category=RiskCategory.DATA_EXFILTRATION,
                 title="Exfiltration via Logs/Cache",
                 description="""
-                Les logs d'inférence ou le cache local pourraient contenir des données 
-                sensibles et être exfiltrés via des vecteurs non contrôlés.
+                Inference logs or local cache could contain sensitive data
+                and be exfiltrated via uncontrolled vectors.
                 """,
                 likelihood=RiskLevel.LOW,
                 impact=RiskLevel.HIGH,
@@ -296,13 +296,13 @@ class RiskAnalyzer:
         ]
     
     def _init_controls(self) -> list[Control]:
-        """Initialise les contrôles de sécurité."""
+        """Initializes security controls."""
         return [
-            # === CONTRÔLES PRÉVENTIFS ===
+            # === PREVENTIVE CONTROLS ===
             Control(
                 id="C01",
-                title="Chiffrement Disque (FileVault)",
-                description="Activer le chiffrement intégral du disque sur tous les devices.",
+                title="Disk Encryption (FileVault)",
+                description="Enable full disk encryption on all devices.",
                 control_type=ControlType.PREVENTIVE,
                 mitigates_risks=["R03", "R07"],
                 implementation_status="implemented",
@@ -310,8 +310,8 @@ class RiskAnalyzer:
             ),
             Control(
                 id="C02",
-                title="Validation des Entrées",
-                description="Implémenter une validation et sanitization des prompts utilisateur.",
+                title="Input Validation",
+                description="Implement validation and sanitization of user prompts.",
                 control_type=ControlType.PREVENTIVE,
                 mitigates_risks=["R01", "R02"],
                 implementation_status="planned",
@@ -319,8 +319,8 @@ class RiskAnalyzer:
             ),
             Control(
                 id="C03",
-                title="Registre des Modèles",
-                description="Maintenir un registre interne des modèles approuvés avec hash SHA256.",
+                title="Model Registry",
+                description="Maintain an internal registry of approved models with SHA256 hash.",
                 control_type=ControlType.PREVENTIVE,
                 mitigates_risks=["R04", "R05"],
                 implementation_status="planned",
@@ -328,8 +328,8 @@ class RiskAnalyzer:
             ),
             Control(
                 id="C04",
-                title="Politique de Logging Minimale",
-                description="Ne pas logger les données sensibles, purger régulièrement les logs.",
+                title="Minimal Logging Policy",
+                description="Do not log sensitive data, regularly purge logs.",
                 control_type=ControlType.PREVENTIVE,
                 mitigates_risks=["R07", "R02"],
                 implementation_status="planned",
@@ -338,18 +338,18 @@ class RiskAnalyzer:
             Control(
                 id="C05",
                 title="Audit des Licences",
-                description="Vérifier et documenter les licences avant déploiement.",
+                description="Verify and document licenses before deployment.",
                 control_type=ControlType.PREVENTIVE,
                 mitigates_risks=["R05"],
                 implementation_status="implemented",
                 effectiveness="high",
             ),
             
-            # === CONTRÔLES DÉTECTIFS ===
+            # === DETECTIVE CONTROLS ===
             Control(
                 id="C06",
-                title="Monitoring des Sorties",
-                description="Détecter les patterns de données sensibles dans les réponses.",
+                title="Output Monitoring",
+                description="Detect sensitive data patterns in responses.",
                 control_type=ControlType.DETECTIVE,
                 mitigates_risks=["R02", "R06"],
                 implementation_status="planned",
@@ -357,19 +357,19 @@ class RiskAnalyzer:
             ),
             Control(
                 id="C07",
-                title="Vérification Intégrité Modèle",
-                description="Vérifier le hash du modèle au démarrage.",
+                title="Model Integrity Verification",
+                description="Verify model hash at startup.",
                 control_type=ControlType.DETECTIVE,
                 mitigates_risks=["R04"],
                 implementation_status="planned",
                 effectiveness="high",
             ),
             
-            # === CONTRÔLES CORRECTIFS ===
+            # === CORRECTIVE CONTROLS ===
             Control(
                 id="C08",
-                title="Procédure de Wipe Distant",
-                description="Capacité à effacer les données du device à distance (MDM).",
+                title="Remote Wipe Procedure",
+                description="Ability to remotely wipe device data (MDM).",
                 control_type=ControlType.CORRECTIVE,
                 mitigates_risks=["R03"],
                 implementation_status="planned",
@@ -378,7 +378,7 @@ class RiskAnalyzer:
             Control(
                 id="C09",
                 title="Human-in-the-Loop",
-                description="Exiger validation humaine pour les décisions critiques.",
+                description="Require human validation for critical decisions.",
                 control_type=ControlType.CORRECTIVE,
                 mitigates_risks=["R06"],
                 implementation_status="implemented",
@@ -387,7 +387,7 @@ class RiskAnalyzer:
         ]
     
     def generate_risk_matrix(self) -> dict:
-        """Génère une matrice de risques."""
+        """Generates a risk matrix."""
         matrix = {
             "inherent": {},
             "residual": {},
@@ -408,7 +408,7 @@ class RiskAnalyzer:
         return matrix
     
     def generate_control_mapping(self) -> dict:
-        """Génère le mapping risques -> contrôles."""
+        """Generates risks -> controls mapping."""
         mapping = {}
         
         for risk in self.risks:
@@ -435,7 +435,7 @@ class RiskAnalyzer:
         return mapping
     
     def generate_full_report(self) -> dict:
-        """Génère le rapport complet d'analyse de risques."""
+        """Generates the complete risk analysis report."""
         report = {
             "metadata": {
                 "title": "Risk Analysis Report - On-Device LLM Deployment",
@@ -484,7 +484,7 @@ class RiskAnalyzer:
         return report
     
     def _generate_summary(self) -> dict:
-        """Génère le résumé de l'analyse."""
+        """Generates the analysis summary."""
         risk_counts = {
             "critical": 0,
             "high": 0,
@@ -510,21 +510,21 @@ class RiskAnalyzer:
             "total_controls": len(self.controls),
             "control_implementation_status": control_counts,
             "key_findings": [
-                "Le déploiement on-device réduit les risques de fuite réseau",
-                "Le chiffrement disque est critique pour la protection des assets",
-                "La validation des entrées reste le principal défi de sécurité",
-                "La gouvernance des modèles (licensing, intégrité) doit être formalisée",
+                "On-device deployment reduces network leakage risks",
+                "Disk encryption is critical for asset protection",
+                "Input validation remains the main security challenge",
+                "Model governance (licensing, integrity) must be formalized",
             ],
             "recommendations": [
-                "Implémenter une validation des prompts avant inférence",
-                "Établir un registre formel des modèles avec vérification d'intégrité",
-                "Définir une politique de logging minimisant la rétention de données",
-                "Former les utilisateurs sur les limites des SLMs (éviter sur-dépendance)",
+                "Implement prompt validation before inference",
+                "Establish a formal model registry with integrity verification",
+                "Define a logging policy minimizing data retention",
+                "Train users on SLM limitations (avoid over-reliance)",
             ],
         }
     
     def save_report(self, filename: Optional[str] = None) -> Path:
-        """Sauvegarde le rapport."""
+        """Saves the report."""
         report = self.generate_full_report()
         
         if filename is None:
@@ -540,7 +540,7 @@ class RiskAnalyzer:
         return filepath
     
     def print_summary(self):
-        """Affiche le résumé de l'analyse."""
+        """Prints the analysis summary."""
         summary = self._generate_summary()
         
         print("\n" + "=" * 60)

@@ -1,30 +1,30 @@
 # Edge SLM Benchmark - Performance Scenarios Configuration
-# Définition des scénarios de benchmark performance
+# Performance benchmark scenarios definition
 
-# Protocole d'exécution global
+# Global execution protocol
 protocol:
-  warmup_runs: 3          # Requêtes de warm-up (non comptées)
-  benchmark_runs: 20      # Nombre de runs par scénario
-  cooldown_seconds: 2     # Pause entre les runs
+  warmup_runs: 3          # Warm-up requests (not counted)
+  benchmark_runs: 20      # Number of runs per scenario
+  cooldown_seconds: 2     # Pause between runs
   
-  # Conditions d'exécution
+  # Execution conditions
   execution_conditions:
-    - "Machine branchée sur secteur"
-    - "Mode économie d'énergie désactivé"
-    - "Applications lourdes fermées (navigateur, IDE secondaires)"
-    - "Température ambiante stable (~20-25°C)"
+    - "Machine plugged into power"
+    - "Power saving mode disabled"
+    - "Heavy applications closed (browser, secondary IDEs)"
+    - "Stable ambient temperature (~20-25°C)"
 
-# Métriques à collecter pour tous les scénarios
+# Metrics to collect for all scenarios
 metrics:
   timing:
     - ttft_ms           # Time To First Token (ms)
-    - total_time_ms     # Temps total de génération (ms)
+    - total_time_ms     # Total generation time (ms)
   throughput:
-    - output_tokens_per_sec   # Débit génération
-    - prompt_tokens_per_sec   # Vitesse ingestion prompt
+    - output_tokens_per_sec   # Generation throughput
+    - prompt_tokens_per_sec   # Prompt ingestion speed
   memory:
-    - peak_ram_mb       # RAM maximale utilisée
-    - avg_ram_mb        # RAM moyenne pendant génération
+    - peak_ram_mb       # Maximum RAM used
+    - avg_ram_mb        # Average RAM during generation
   statistics:
     - mean
     - std
@@ -33,12 +33,12 @@ metrics:
     - min
     - max
 
-# === SCÉNARIOS DE PERFORMANCE ===
+# === PERFORMANCE SCENARIOS ===
 scenarios:
-  # Scénario 1: Assistant Interactif
+  # Scenario 1: Interactive Assistant
   interactive_assistant:
     name: "Interactive Assistant"
-    description: "Simulation d'un assistant bancaire répondant à des questions courtes"
+    description: "Simulation of a banking assistant answering short questions"
     category: "latency_sensitive"
     
     parameters:
@@ -47,20 +47,20 @@ scenarios:
       max_tokens: 128
       
     metrics_focus:
-      - ttft_ms           # Critique pour UX interactive
+      - ttft_ms           # Critical for interactive UX
       - output_tokens_per_sec
       
     prompts_file: "prompts/interactive_assistant.yaml"
     
-    # Seuils de qualité (indicatifs)
+    # Quality thresholds (indicative)
     quality_thresholds:
-      ttft_ms_max: 500      # < 500ms pour bonne UX
+      ttft_ms_max: 500      # < 500ms for good UX
       tokens_per_sec_min: 20
 
-  # Scénario 2: Résumé Long
+  # Scenario 2: Long-form Summary
   long_form_summarization:
     name: "Long-form Summarization"
-    description: "Résumé de documents longs (rapports, notes internes)"
+    description: "Summary of long documents (reports, internal notes)"
     category: "throughput_sensitive"
     
     parameters:
@@ -79,10 +79,10 @@ scenarios:
       tokens_per_sec_min: 15
       peak_ram_mb_max: 12000  # 12GB pour laptop 16GB
 
-  # Scénario 3: Sortie JSON Structurée
+  # Scenario 3: Structured JSON Output
   structured_json_output:
     name: "Structured JSON Output"
-    description: "Extraction d'informations avec sortie JSON contrainte"
+    description: "Information extraction with constrained JSON output"
     category: "reliability_sensitive"
     
     parameters:
@@ -92,22 +92,22 @@ scenarios:
       use_structured_output: true
       
     metrics_focus:
-      - json_valid_rate     # Taux de JSON valides
+      - json_valid_rate     # Valid JSON rate
       - output_tokens_per_sec
       - ttft_ms
       
     prompts_file: "prompts/json_extraction.yaml"
     
     quality_thresholds:
-      json_valid_rate_min: 0.95   # 95% de JSON valides minimum
+      json_valid_rate_min: 0.95   # Minimum 95% valid JSONs
       tokens_per_sec_min: 15
 
-# === SCÉNARIOS RÉALISTES BANKING ===
+# === REALISTIC BANKING SCENARIOS ===
 realistic_scenarios:
-  # FAQ Bancaire
+  # Banking FAQ
   banking_faq:
     name: "Banking FAQ Assistant"
-    description: "Réponses aux questions clients courantes sur les services bancaires"
+    description: "Answers to common customer questions about banking services"
     category: "interactive"
     
     parameters:
@@ -122,10 +122,10 @@ realistic_scenarios:
       
     prompts_file: "prompts/banking_faq.yaml"
 
-  # Analyse de Sentiment
+  # Sentiment Analysis
   sentiment_analysis:
     name: "Customer Feedback Sentiment"
-    description: "Classification de sentiment sur les retours clients"
+    description: "Sentiment classification on customer feedback"
     category: "classification"
     
     parameters:
@@ -140,10 +140,10 @@ realistic_scenarios:
       
     prompts_file: "prompts/sentiment.yaml"
 
-  # Extraction d'Informations
+  # Information Extraction
   info_extraction:
     name: "Document Information Extraction"
-    description: "Extraction structurée d'informations depuis documents"
+    description: "Structured information extraction from documents"
     category: "extraction"
     
     parameters:
@@ -159,10 +159,10 @@ realistic_scenarios:
       
     prompts_file: "prompts/extraction.yaml"
 
-  # Résumé de Documents
+  # Document Summary
   document_summary:
     name: "Internal Document Summary"
-    description: "Synthèse de rapports et notes internes"
+    description: "Synthesis of reports and internal notes"
     category: "generation"
     
     parameters:

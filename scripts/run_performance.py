@@ -3,25 +3,25 @@
 Run Performance Benchmarks
 ==========================
 
-Script pour exécuter les benchmarks de performance sur les modèles SLM.
+Script to run performance benchmarks on SLM models.
 
 Features:
-- Exécution modèle par modèle ou tous ensemble
-- Checkpoint automatique après chaque modèle/scénario
-- Reprise automatique en cas de crash (--resume)
-- Protection contre les erreurs (continue même si un modèle échoue)
+- Model-by-model or batch execution
+- Automatic checkpoint after each model/scenario
+- Automatic resume after crash (--resume)
+- Error protection (continues even if a model fails)
 
 Usage:
-    # Tous les modèles, tous les scénarios
+    # All models, all scenarios
     python scripts/run_performance.py --models all --scenarios all
     
-    # Un seul modèle
+    # Single model
     python scripts/run_performance.py --models gemma_3n_e4b_gguf --scenarios interactive_assistant
     
-    # Reprendre après un crash
+    # Resume after crash
     python scripts/run_performance.py --resume
     
-    # Mode comparaison
+    # Comparison mode
     python scripts/run_performance.py --compare --scenario interactive_assistant
 """
 
@@ -29,7 +29,7 @@ import argparse
 import sys
 from pathlib import Path
 
-# Ajouter le répertoire parent au path
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import yaml
@@ -45,7 +45,7 @@ from typing import Optional
 
 @dataclass
 class ModelInfo:
-    """Informations complètes sur un modèle pour le benchmark."""
+    """Complete model information for benchmarking."""
     id: str                    # ID LM Studio (ex: google/gemma-3n-e4b)
     config_key: str            # Clé dans models.yaml (ex: gemma_3n_e4b_gguf)
     display_name: str          # Nom d'affichage (ex: Gemma 3n E4B (GGUF Q4_K_M))
@@ -53,7 +53,7 @@ class ModelInfo:
     quantization: str          # Quantization: "4bit", "Q4_K_M", etc.
     
     def get_filename_suffix(self) -> str:
-        """Retourne le suffixe pour les noms de fichiers (ex: MLX_4bit, GGUF_Q4_K_M)."""
+        """Return suffix for filenames (e.g., MLX_4bit, GGUF_Q4_K_M)."""
         return f"{self.format.upper()}_{self.quantization}"
     
     def __str__(self) -> str:
@@ -61,17 +61,17 @@ class ModelInfo:
 
 
 def load_models_config(config_path: Path) -> dict:
-    """Charge la configuration des modèles."""
+    """Load models configuration."""
     with open(config_path) as f:
         return yaml.safe_load(f)
 
 
 def get_models(models_config: dict, selection: str) -> list[ModelInfo]:
     """
-    Récupère les modèles avec leurs métadonnées selon la sélection.
+    Get models with their metadata based on selection.
     
     Returns:
-        Liste de ModelInfo avec toutes les métadonnées nécessaires
+        List of ModelInfo with all necessary metadata
     """
     models = models_config.get("models", {})
     groups = models_config.get("model_groups", {})
@@ -96,7 +96,7 @@ def get_models(models_config: dict, selection: str) -> list[ModelInfo]:
     elif selection in models:
         return [create_model_info(selection, models[selection])]
     else:
-        # Supposer que c'est un ID LM Studio direct - format inconnu
+            # Assume it's a direct LM Studio ID - unknown format
         return [ModelInfo(
             id=selection,
             config_key=selection,
@@ -189,7 +189,7 @@ def main():
     
     args = parser.parse_args()
     
-    # Charger la configuration
+    # Load configuration
     models_config_path = args.config_dir / "models.yaml"
     scenarios_config_path = args.config_dir / "scenarios.yaml"
     
@@ -200,7 +200,7 @@ def main():
     models_config = load_models_config(models_config_path)
     models = get_models(models_config, args.models)
     
-    # Déterminer les scénarios
+    # Determine scenarios
     from src.performance.scenarios import ScenarioExecutor
     scenario_executor = ScenarioExecutor(scenarios_config_path)
     if args.scenarios == "all":
@@ -220,7 +220,7 @@ def main():
     print(f"LM Studio URL: {args.base_url}")
     print("=" * 60)
     
-    # Configuration du benchmark
+    # Benchmark configuration
     config = BenchmarkConfig(
         warmup_runs=args.warmup,
         benchmark_runs=args.runs,
@@ -231,8 +231,8 @@ def main():
         seed=args.seed,
     )
     
-    # Initialiser le checkpoint manager
-    # Note: On utilise config_key pour les checkpoints car c'est unique (inclut le format)
+    # Initialize checkpoint manager
+    # Note: We use config_key for checkpoints as it's unique (includes format)
     model_keys = [m.config_key for m in models]
     
     checkpoint = None
@@ -242,7 +242,7 @@ def main():
         if args.resume:
             state = checkpoint.resume_latest()
             if state:
-                # Filtrer les modèles selon le checkpoint
+                # Filter models according to checkpoint
                 remaining_keys = set(state.planned_models) - set(k for k, _, _ in state.completed)
                 models = [m for m in models if m.config_key in remaining_keys or m.config_key in state.planned_models]
                 scenarios = state.planned_scenarios
@@ -260,9 +260,9 @@ def main():
                 scenarios=scenarios,
             )
     
-    # Initialiser le client et le runner
+    # Initialize client and runner
     with LMStudioClient(base_url=args.base_url) as client:
-        # Vérifier la santé du serveur
+        # Check server health
         health = client.health_check()
         if health["status"] != "healthy":
             print(f"Error: LM Studio server not healthy: {health}")
@@ -270,7 +270,7 @@ def main():
         
         print("\n[OK] LM Studio server is healthy")
         
-        # Lister les modèles disponibles
+        # List available models
         available_models = client.list_models()
         print(f"[OK] Available models: {len(available_models)}")
         
@@ -284,7 +284,7 @@ def main():
         failed_count = 0
         
         if args.compare:
-            # Mode comparaison: tous les modèles sur un scénario
+            # Comparison mode: all models on one scenario
             scenario = scenarios[0] if scenarios else "interactive_assistant"
             
             for model in models:
@@ -298,10 +298,10 @@ def main():
                     print(f"# Format: {model.format.upper()} | Quantization: {model.quantization}")
                     print(f"{'#'*60}")
                     
-                    # Afficher les instructions pour l'utilisateur
-                    print(f"\n⚠️  IMPORTANT: Assurez-vous que le modèle suivant est chargé dans LM Studio:")
+                    # Display instructions for the user
+                    print(f"\n⚠️  IMPORTANT: Make sure the following model is loaded in LM Studio:")
                     print(f"    ID: {model.id}")
-                    print(f"    Format attendu: {model.format.upper()} {model.quantization}")
+                    print(f"    Expected format: {model.format.upper()} {model.quantization}")
                     print("")
                     
                     result = runner.run_scenario(
@@ -331,16 +331,16 @@ def main():
                     failed_count += 1
                     if checkpoint:
                         checkpoint.mark_failed(model.config_key, scenario, str(e))
-                    # Continue avec le prochain modèle
+                    # Continue with the next model
                     continue
             
-            # Afficher la comparaison
+            # Display comparison
             if all_results:
                 runner._print_comparison(all_results, scenario)
                 runner.save_comparison_csv(all_results)
         
         else:
-            # Mode standard: chaque modèle sur les scénarios sélectionnés
+            # Standard mode: each model on selected scenarios
             for model in models:
                 for scenario_name in scenarios:
                     if checkpoint and checkpoint.should_skip(model.config_key, scenario_name):
@@ -354,10 +354,10 @@ def main():
                         print(f"# Scenario: {scenario_name}")
                         print(f"{'#'*60}")
                         
-                        # Afficher les instructions pour l'utilisateur
-                        print(f"\n⚠️  IMPORTANT: Assurez-vous que le modèle suivant est chargé dans LM Studio:")
+                        # Display instructions for the user
+                        print(f"\n⚠️  IMPORTANT: Make sure the following model is loaded in LM Studio:")
                         print(f"    ID: {model.id}")
-                        print(f"    Format attendu: {model.format.upper()} {model.quantization}")
+                        print(f"    Expected format: {model.format.upper()} {model.quantization}")
                         print("")
                         
                         result = runner.run_scenario(
@@ -386,10 +386,10 @@ def main():
                         failed_count += 1
                         if checkpoint:
                             checkpoint.mark_failed(model.config_key, scenario_name, str(e))
-                        # Continue avec le prochain
+                        # Continue with the next one
                         continue
     
-    # Résumé final
+    # Final summary
     if checkpoint:
         checkpoint.print_summary()
     

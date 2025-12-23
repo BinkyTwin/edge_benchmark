@@ -2,16 +2,16 @@
 Edge SLM Benchmark Framework
 ============================
 
-Framework de benchmark pour évaluer des SLMs sur Apple Silicon
-dans un contexte bancaire réglementé.
+Benchmark framework for evaluating SLMs on Apple Silicon
+in a regulated banking context.
 
 Modules:
-    - lmstudio_client: Client REST API LM Studio
-    - reproducibility: Gestion des seeds et de l'environnement
-    - statistics: Intervalles de confiance et tests de significativité
-    - performance: Benchmarks de performance (TTFT, tokens/s, RAM)
-    - capability: Benchmarks de capacités (Banking77, coding, etc.)
-    - compliance: Analyse de conformité NIST/OWASP
+    - lmstudio_client: LM Studio REST API client
+    - reproducibility: Seed and environment management
+    - statistics: Confidence intervals and significance tests
+    - performance: Performance benchmarks (TTFT, tokens/s, RAM)
+    - capability: Capability benchmarks (Banking77, coding, etc.)
+    - compliance: NIST/OWASP compliance analysis
 """
 
 __version__ = "0.1.0"
