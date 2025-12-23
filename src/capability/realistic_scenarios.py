@@ -559,34 +559,162 @@ class RealisticScenariosEvaluator:
     # === STRICT METRICS ===
     
     def _extract_numbers(self, text: str) -> list[float]:
-        """Extrait tous les nombres d'un texte."""
+        """
+        Extrait tous les nombres d'un texte avec support robuste pour:
+        - Formats internationaux (US: 1,234.56 vs EU: 1.234,56)
+        - Nombres négatifs en format comptable: (150.0) = -150.0
+        - Pourcentages, monnaies, unités (million/billion)
+        """
         if not text:
             return []
         
-        # Pattern pour nombres avec virgules, décimales, pourcentages, etc.
+        numbers = []
+        text_original = text
+        text_lower = text.lower()
+        
+        # 1. Extraire les nombres négatifs en format comptable: (150.0) ou (1,234.56)
+        # Ceci est courant en comptabilité pour représenter les pertes
+        accounting_pattern = r'\((\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?)\)'
+        for match in re.finditer(accounting_pattern, text_lower):
+            num_str = match.group(1)
+            parsed = self._parse_number_string(num_str)
+            if parsed is not None:
+                numbers.append(-parsed)  # Négatif car entre parenthèses
+        
+        # 2. Patterns standards pour les nombres
         patterns = [
-            r'-?\d+\.?\d*%',           # Pourcentages
-            r'-?\$?\d{1,3}(?:,\d{3})*(?:\.\d+)?',  # Monnaie avec virgules
-            r'-?\d+\.?\d*(?:million|billion|m|b)?',  # Avec unités
-            r'-?\d+\.?\d*',             # Nombres simples
+            # Pourcentages (avec signe optionnel)
+            r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?%',
+            # Monnaie avec symbole (USD, EUR, etc.)
+            r'[+-]?[$€£¥]\s*\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?',
+            # Nombres avec unités (million, billion, etc.)
+            r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?\s*(?:million|billion|trillion|m|b|bn|k)',
+            # Nombres décimaux standards (attrape tout le reste)
+            r'[+-]?\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d+)?',
         ]
         
-        numbers = []
-        text_lower = text.lower().replace(",", "")
-        
         for pattern in patterns:
-            matches = re.findall(pattern, text_lower)
-            for match in matches:
-                # Nettoyer et convertir
-                clean = match.replace("$", "").replace("%", "").replace(",", "")
-                clean = clean.replace("million", "").replace("billion", "")
-                clean = clean.replace("m", "").replace("b", "").strip()
-                try:
-                    numbers.append(float(clean))
-                except ValueError:
-                    continue
+            for match in re.finditer(pattern, text_lower):
+                num_str = match.group()
+                parsed = self._parse_number_string(num_str)
+                if parsed is not None and parsed not in numbers and -parsed not in numbers:
+                    numbers.append(parsed)
         
         return numbers
+    
+    def _parse_number_string(self, num_str: str) -> float | None:
+        """
+        Parse une chaîne de caractères en nombre, gérant les formats internationaux.
+        
+        Détecte automatiquement:
+        - Format US: 1,234.56 (virgule = séparateur milliers, point = décimal)
+        - Format EU: 1.234,56 (point = séparateur milliers, virgule = décimal)
+        """
+        if not num_str:
+            return None
+        
+        # Nettoyer les symboles monétaires et espaces
+        clean = num_str.strip()
+        clean = re.sub(r'[$€£¥\s]', '', clean)
+        clean = clean.replace('%', '')
+        
+        # Gérer les unités multiplicatrices
+        multiplier = 1.0
+        unit_patterns = [
+            (r'trillion|t$', 1e12),
+            (r'billion|bn|b$', 1e9),
+            (r'million|m$', 1e6),
+            (r'thousand|k$', 1e3),
+        ]
+        for pattern, mult in unit_patterns:
+            if re.search(pattern, clean, re.IGNORECASE):
+                multiplier = mult
+                clean = re.sub(pattern, '', clean, flags=re.IGNORECASE)
+                break
+        
+        clean = clean.strip()
+        
+        # Gérer le signe
+        negative = clean.startswith('-')
+        if clean.startswith(('+', '-')):
+            clean = clean[1:]
+        
+        # Détecter le format: US vs EU
+        # Heuristique: regarder le dernier séparateur
+        # Si le dernier est une virgule suivie de 1-2 chiffres: format EU (décimal = virgule)
+        # Si le dernier est un point suivi de 1-2 chiffres: format US (décimal = point)
+        
+        has_comma = ',' in clean
+        has_period = '.' in clean
+        
+        if has_comma and has_period:
+            # Les deux sont présents - déterminer lequel est le décimal
+            last_comma = clean.rfind(',')
+            last_period = clean.rfind('.')
+            
+            if last_comma > last_period:
+                # Format EU: 1.234,56 (virgule est le décimal)
+                clean = clean.replace('.', '').replace(',', '.')
+            else:
+                # Format US: 1,234.56 (point est le décimal)
+                clean = clean.replace(',', '')
+        elif has_comma:
+            # Seulement des virgules
+            # Si la partie après la dernière virgule a 3 chiffres, c'est un séparateur de milliers
+            parts = clean.split(',')
+            if len(parts[-1]) == 3 and len(parts) > 1:
+                # Séparateur de milliers (format US sans décimal)
+                clean = clean.replace(',', '')
+            else:
+                # Décimal (format EU sans séparateur de milliers)
+                clean = clean.replace(',', '.')
+        elif has_period:
+            # Seulement des points
+            # Si la partie après le dernier point a 3 chiffres, c'est un séparateur de milliers (EU)
+            parts = clean.split('.')
+            if len(parts[-1]) == 3 and len(parts) > 1:
+                # Pourrait être un séparateur de milliers EU, mais aussi juste un nombre comme 1.234
+                # Par défaut, traiter comme décimal (format US)
+                pass
+            # Sinon c'est un décimal standard
+        
+        try:
+            result = float(clean) * multiplier
+            return -result if negative else result
+        except ValueError:
+            return None
+    
+    def _extract_final_answer(self, text: str) -> str:
+        """
+        Extrait la réponse finale d'un texte, isolant le résultat numérique
+        du reste de la phrase.
+        
+        Cherche des patterns comme:
+        - "The answer is 15%"
+        - "Final answer: 42.5"
+        - "= 123.45"
+        - "Result: $1,234.56"
+        """
+        if not text:
+            return ""
+        
+        # Patterns pour identifier la réponse finale
+        answer_patterns = [
+            r'(?:the\s+)?(?:final\s+)?answer\s*(?:is|:)\s*(.+?)(?:\.|$)',
+            r'(?:result|total|sum|value)\s*(?:is|:|=)\s*(.+?)(?:\.|$)',
+            r'=\s*([+-]?\$?[\d,.\s]+(?:%|million|billion)?)',
+            r'(?:^|\n)([+-]?\$?[\d,.\s]+(?:%|million|billion)?)(?:\s|$)',
+        ]
+        
+        text_lower = text.lower().strip()
+        
+        for pattern in answer_patterns:
+            match = re.search(pattern, text_lower, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        
+        # Fallback: retourner le texte nettoyé
+        return text.strip()
     
     def _numerical_match(
         self,
@@ -609,24 +737,53 @@ class RealisticScenariosEvaluator:
             return False
         
         gold_numbers = self._extract_numbers(gold)
-        pred_numbers = self._extract_numbers(pred)
         
         if not gold_numbers:
             return False
+        
+        # D'abord, essayer d'extraire la réponse finale (plus précis)
+        final_answer = self._extract_final_answer(pred)
+        pred_numbers_final = self._extract_numbers(final_answer)
+        
+        # Sinon, utiliser tous les nombres de la prédiction
+        pred_numbers_all = self._extract_numbers(pred)
+        
+        # Combiner: priorité aux nombres de la réponse finale
+        pred_numbers = pred_numbers_final if pred_numbers_final else pred_numbers_all
         
         # Vérifier si le nombre gold principal est présent dans la prédiction
         gold_main = gold_numbers[0]
         
         for pred_num in pred_numbers:
-            if gold_main == 0:
-                if pred_num == 0:
-                    return True
-            else:
-                relative_diff = abs(pred_num - gold_main) / abs(gold_main)
-                if relative_diff <= tolerance:
+            if self._numbers_match(pred_num, gold_main, tolerance):
+                return True
+        
+        # Si pas trouvé dans la réponse finale, chercher dans tous les nombres
+        if pred_numbers_final and not pred_numbers_all == pred_numbers_final:
+            for pred_num in pred_numbers_all:
+                if self._numbers_match(pred_num, gold_main, tolerance):
                     return True
         
         return False
+    
+    def _numbers_match(
+        self,
+        a: float,
+        b: float,
+        tolerance: float = 0.01,
+    ) -> bool:
+        """Compare deux nombres avec tolérance relative et absolue."""
+        # Cas spécial: les deux sont zéro
+        if a == 0 and b == 0:
+            return True
+        
+        # Cas spécial: un seul est zéro
+        if a == 0 or b == 0:
+            return abs(a - b) < 0.001  # Tolérance absolue pour les petits nombres
+        
+        # Tolérance relative
+        relative_diff = abs(a - b) / max(abs(a), abs(b))
+        return relative_diff <= tolerance
     
     def _exact_match_strict(self, pred: str, gold: str) -> bool:
         """
@@ -1091,6 +1248,145 @@ Please provide the answer:"""
             timestamp=datetime.now().isoformat(),
         )
     
+    def _extract_json_from_text(self, text: str) -> dict | None:
+        """
+        Extrait un objet JSON d'un texte brut.
+        
+        Gère les cas où le JSON est entouré de texte ou de markdown:
+        - ```json ... ```
+        - { ... } directement
+        - Texte avant/après le JSON
+        """
+        if not text:
+            return None
+        
+        # 1. Essayer de parser directement
+        text = text.strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        
+        # 2. Chercher un bloc markdown ```json ... ```
+        markdown_pattern = r'```(?:json)?\s*\n?([\s\S]*?)\n?```'
+        match = re.search(markdown_pattern, text)
+        if match:
+            try:
+                return json.loads(match.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+        
+        # 3. Chercher le premier { et le dernier } correspondant
+        start = text.find('{')
+        if start == -1:
+            return None
+        
+        # Compter les accolades pour trouver la fin
+        depth = 0
+        end = -1
+        for i, char in enumerate(text[start:], start):
+            if char == '{':
+                depth += 1
+            elif char == '}':
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        
+        if end == -1:
+            return None
+        
+        try:
+            return json.loads(text[start:end + 1])
+        except json.JSONDecodeError:
+            return None
+    
+    def _compute_grounding_score(
+        self,
+        parsed_json: dict,
+        source_text: str,
+    ) -> dict:
+        """
+        Calcule le score de Grounding: vérifie si les nombres dans le JSON
+        existent dans le texte source.
+        
+        Cela permet de détecter les hallucinations numériques.
+        
+        Returns:
+            Dict avec:
+            - grounding_rate: % de nombres du JSON trouvés dans le source
+            - total_numbers_in_json: nombre total de valeurs numériques dans le JSON
+            - grounded_numbers: nombre de valeurs correctement ancrées
+            - hallucinated_numbers: liste des nombres qui ne sont pas dans le source
+        """
+        if not parsed_json or not source_text:
+            return {
+                "grounding_rate": 0.0,
+                "total_numbers_in_json": 0,
+                "grounded_numbers": 0,
+                "hallucinated_numbers": [],
+            }
+        
+        # Extraire tous les nombres du texte source
+        source_numbers = set(self._extract_numbers(source_text))
+        
+        # Extraire tous les nombres du JSON (récursivement)
+        json_numbers = self._extract_numbers_from_json(parsed_json)
+        
+        if not json_numbers:
+            return {
+                "grounding_rate": 1.0,  # Pas de nombres = pas d'hallucination
+                "total_numbers_in_json": 0,
+                "grounded_numbers": 0,
+                "hallucinated_numbers": [],
+            }
+        
+        # Vérifier le grounding de chaque nombre
+        grounded = []
+        hallucinated = []
+        
+        for num in json_numbers:
+            is_grounded = False
+            for source_num in source_numbers:
+                if self._numbers_match(num, source_num, tolerance=0.01):
+                    is_grounded = True
+                    break
+            
+            if is_grounded:
+                grounded.append(num)
+            else:
+                hallucinated.append(num)
+        
+        grounding_rate = len(grounded) / len(json_numbers) if json_numbers else 0.0
+        
+        return {
+            "grounding_rate": round(grounding_rate, 4),
+            "total_numbers_in_json": len(json_numbers),
+            "grounded_numbers": len(grounded),
+            "hallucinated_numbers": hallucinated[:10],  # Limiter pour lisibilité
+        }
+    
+    def _extract_numbers_from_json(self, obj, numbers: list = None) -> list[float]:
+        """Extrait récursivement tous les nombres d'un objet JSON."""
+        if numbers is None:
+            numbers = []
+        
+        if isinstance(obj, (int, float)):
+            if not isinstance(obj, bool):  # bool est une sous-classe de int
+                numbers.append(float(obj))
+        elif isinstance(obj, str):
+            # Extraire les nombres des chaînes
+            extracted = self._extract_numbers(obj)
+            numbers.extend(extracted)
+        elif isinstance(obj, dict):
+            for value in obj.values():
+                self._extract_numbers_from_json(value, numbers)
+        elif isinstance(obj, list):
+            for item in obj:
+                self._extract_numbers_from_json(item, numbers)
+        
+        return numbers
+    
     def evaluate_info_extraction(
         self,
         model_id: str,
@@ -1104,20 +1400,36 @@ Please provide the answer:"""
         Cette évaluation mesure la VALIDITÉ STRUCTURELLE, pas l'exactitude du contenu.
         Il n'y a pas de gold JSON disponible dans FinQA.
         
+        Stratégie JSON:
+        1. Essayer le mode JSON contraint du serveur (response_format)
+        2. Si échec, fallback vers extraction manuelle du JSON depuis la réponse
+        
         Métriques:
         - JSON validity rate (avec IC 95%)
         - Field extraction count
+        - Grounding rate (nouveaux): % de nombres du JSON présents dans le source
         """
         samples = self.loader.load_flare_finqa(limit=num_samples)
         
-        system_prompt = """You are a financial document parser.
-Extract key information from the document and return it as valid JSON.
-Always respond with properly formatted JSON, nothing else."""
+        # Prompt optimisé pour Grounding > 85%
+        # Rôle d'auditeur strict = moins de prise de risque = moins d'hallucinations
+        system_prompt = """You are a strict financial data auditor. 
+Your ONLY goal is to extract raw data into JSON.
+
+RULES FOR DATA INTEGRITY:
+1. TRUTH OVER COMPLETION: If a specific figure is not explicitly stated in the text, use null. NEVER guess.
+2. VERIFICATION STEP: Before writing a number, locate it in the source text. If it is not there, do not include it.
+3. NO SCALING ERRORS: Ensure "millions" or "billions" are correctly handled or kept as strings if ambiguous.
+4. STRICT JSON: Output only the JSON object. No preamble, no postscript.
+
+If you are unsure about a value, set it to null instead of hallucinating."""
         
         results = []
         latencies = []
         valid_json_list = []
         fields_list = []
+        grounding_list = []
+        json_mode_used = []  # Track which mode succeeded
         
         start_time = time.time()
         iterator = tqdm(samples, desc="Info Extraction") if progress_bar else samples
@@ -1128,48 +1440,170 @@ Always respond with properly formatted JSON, nothing else."""
             if not context:
                 continue
             
-            prompt = f"""Extract structured information from this financial document:
-
+            # Prompt avec balises d'isolation pour améliorer l'attention
+            # et instruction de "Double-Check" pour réduire les hallucinations
+            prompt = f"""[SOURCE DOCUMENT]
 {context}
+[/SOURCE DOCUMENT]
 
-Return a JSON object with:
-- document_type: type of document (earnings, 10-K, etc.)
-- key_figures: array of numbers found with their labels
-- time_period: fiscal period if mentioned
-- entities: companies or organizations mentioned
+[INSTRUCTION]
+Extract the following fields into JSON. 
+For each 'value' in 'key_figures', you MUST ensure the digit exists exactly as written in the [SOURCE DOCUMENT].
+
+Required Format:
+{{
+  "document_type": "string or null",
+  "key_figures": [
+    {{"label": "exact description", "value": number_or_null}}
+  ],
+  "time_period": "string or null",
+  "entities": ["string"]
+}}
+[/INSTRUCTION]
 
 JSON:"""
             
             messages = format_messages(prompt, system_prompt)
             
-            result = self.client.complete(
-                model=model_id,
-                messages=messages,
-                temperature=0,
-                max_tokens=400,
-                stream=False,
-                response_format={"type": "json_object"},
-            )
+            parsed_json = None
+            mode_used = "none"
+            result = None
             
-            latencies.append(result.metrics.total_time_ms)
-            
-            is_valid = result.json_valid and result.parsed_json is not None
-            valid_json_list.append(is_valid)
-            
-            extraction_result = {
-                "success": result.success,
-                "json_valid": is_valid,
-                "parsed": result.parsed_json if is_valid else None,
+            # Format LM Studio json_schema 
+            # https://lmstudio.ai/docs/developer/openai-compat/structured-output
+            extraction_schema = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "financial_extraction",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "document_type": {
+                                "type": ["string", "null"],
+                                "description": "Type of document (earnings, 10-K, quarterly report, etc.)"
+                            },
+                            "key_figures": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "label": {"type": "string"},
+                                        "value": {"type": ["number", "string", "null"]}
+                                    },
+                                    "required": ["label", "value"]
+                                }
+                            },
+                            "time_period": {
+                                "type": ["string", "null"],
+                                "description": "Fiscal period if mentioned"
+                            },
+                            "entities": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Companies or organizations mentioned"
+                            }
+                        },
+                        "required": ["document_type", "key_figures", "time_period", "entities"]
+                    }
+                }
             }
             
-            if is_valid and result.parsed_json:
+            # Stratégie 1: Essayer le mode JSON Schema contraint (LM Studio)
+            try:
+                result = self.client.complete(
+                    model=model_id,
+                    messages=messages,
+                    temperature=0,
+                    max_tokens=500,
+                    stream=False,
+                    response_format=extraction_schema,
+                )
+                
+                latencies.append(result.metrics.total_time_ms)
+                
+                if result.json_valid and result.parsed_json is not None:
+                    parsed_json = result.parsed_json
+                    mode_used = "json_schema_constrained"
+                elif result.content:
+                    # Le mode contraint a échoué, essayer extraction manuelle
+                    parsed_json = self._extract_json_from_text(result.content)
+                    if parsed_json:
+                        mode_used = "manual_from_constrained"
+            except Exception as e:
+                # Le serveur ne supporte peut-être pas response_format json_schema
+                # Essayer le format json_object simple (fallback OpenAI)
+                try:
+                    result = self.client.complete(
+                        model=model_id,
+                        messages=messages,
+                        temperature=0,
+                        max_tokens=500,
+                        stream=False,
+                        response_format={"type": "json_object"},
+                    )
+                    
+                    latencies.append(result.metrics.total_time_ms)
+                    
+                    if result.json_valid and result.parsed_json is not None:
+                        parsed_json = result.parsed_json
+                        mode_used = "json_object_fallback"
+                    elif result.content:
+                        parsed_json = self._extract_json_from_text(result.content)
+                        if parsed_json:
+                            mode_used = "manual_from_json_object"
+                except Exception:
+                    pass
+            
+            # Stratégie 2: Fallback vers appel sans mode contraint (prompt only)
+            if parsed_json is None:
+                try:
+                    result = self.client.complete(
+                        model=model_id,
+                        messages=messages,
+                        temperature=0,
+                        max_tokens=500,
+                        stream=False,
+                        # Pas de response_format - le modèle doit suivre le prompt
+                    )
+                    
+                    if not latencies or len(latencies) < len(results) + 1:
+                        latencies.append(result.metrics.total_time_ms)
+                    
+                    if result.content:
+                        parsed_json = self._extract_json_from_text(result.content)
+                        if parsed_json:
+                            mode_used = "prompt_only_fallback"
+                except Exception as e:
+                    print(f"[Warning] JSON extraction failed: {e}")
+            
+            is_valid = parsed_json is not None
+            valid_json_list.append(is_valid)
+            json_mode_used.append(mode_used)
+            
+            extraction_result = {
+                "success": is_valid,
+                "json_valid": is_valid,
+                "parsed": parsed_json,
+                "mode_used": mode_used,
+                "raw_response": result.content[:300] if result and result.content else None,
+            }
+            
+            # Calculer les champs présents
+            if is_valid and parsed_json:
                 expected_fields = ["document_type", "key_figures", "time_period", "entities"]
-                fields_present = sum(1 for f in expected_fields if f in result.parsed_json)
+                fields_present = sum(1 for f in expected_fields if f in parsed_json)
                 extraction_result["fields_present"] = fields_present
                 extraction_result["fields_expected"] = len(expected_fields)
                 fields_list.append(fields_present)
+                
+                # Calculer le score de Grounding
+                grounding = self._compute_grounding_score(parsed_json, context)
+                extraction_result["grounding"] = grounding
+                grounding_list.append(grounding["grounding_rate"])
             else:
                 fields_list.append(0)
+                grounding_list.append(0.0)
             
             results.append(extraction_result)
         
@@ -1178,6 +1612,12 @@ JSON:"""
         # Calculer les statistiques
         valid_stats = self.stats.binary_metrics_with_ci(valid_json_list)
         fields_stats = self.stats.compute_stats(fields_list)
+        grounding_stats = self.stats.compute_stats(grounding_list)
+        
+        # Statistiques sur les modes utilisés
+        mode_counts = {}
+        for mode in json_mode_used:
+            mode_counts[mode] = mode_counts.get(mode, 0) + 1
         
         # Récupérer les métadonnées
         rationale = SAMPLE_SIZE_RATIONALE.get("info_extraction", {})
@@ -1192,20 +1632,28 @@ JSON:"""
                 "valid_json_count": sum(valid_json_list),
                 "avg_fields_extracted": fields_stats["mean"],
                 "avg_fields_ci_95": fields_stats["ci_95"],
+                # Nouvelle métrique de Grounding
+                "grounding_rate": grounding_stats["mean"],
+                "grounding_rate_ci_95": grounding_stats["ci_95"],
+                # Métadonnées sur les modes
+                "json_mode_stats": mode_counts,
                 # Métadonnées importantes
-                "metric_type": "structural_validity",
+                "metric_type": "structural_validity_with_grounding",
             },
             avg_latency_ms=sum(latencies) / len(latencies) if latencies else 0,
             total_time_seconds=total_time,
             dataset_source=DATASET_CONFIG["flare_finqa"]["name"],
             dataset_citation=DATASET_CONFIG["flare_finqa"]["citation"],
             methodology={
-                "metric_type": "structural_validity",
+                "metric_type": "structural_validity_with_grounding",
                 "sample_size_justification": rationale.get("justification", ""),
                 "power_analysis": rationale.get("power", ""),
+                "json_strategy": "Try constrained mode first, fallback to manual extraction",
+                "grounding_explanation": "Measures % of numbers in JSON that exist in source text",
                 "limitations": [
                     "No gold JSON available - measures structure not content accuracy",
                     "Field presence does not guarantee field correctness",
+                    "Grounding only checks numbers, not text content accuracy",
                 ],
             },
             responses=results,

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge SLM Benchmark Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Source Serif 4', 'Times New Roman', Times, serif;
+            background: #ffffff;
+            color: #000000;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 3rem;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            padding: 2rem 0 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #000;
+        }
+        
+        h1 {
+            font-size: 18pt;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #000;
+        }
+        
+        .timestamp {
+            color: #444;
+            font-size: 10pt;
+            font-style: italic;
+        }
+        
+        /* Sections */
+        .section {
+            margin-bottom: 2rem;
+        }
+        
+        h2 {
+            font-size: 14pt;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #000;
+            color: #000;
+        }
+        
+        h3 {
+            font-size: 12pt;
+            font-weight: 600;
+            margin: 1.25rem 0 0.75rem;
+            color: #000;
+        }
+        
+        p {
+            color: #000;
+            margin-bottom: 0.75rem;
+            text-align: justify;
+        }
+        
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+            margin: 1rem 0;
+        }
+        
+        .data-table th {
+            background: #fff;
+            color: #000;
+            font-weight: 700;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border-top: 2px solid #000;
+            border-bottom: 1px solid #000;
+        }
+        
+        .data-table td {
+            padding: 0.4rem 0.75rem;
+            border-bottom: 1px solid #ccc;
+            color: #000;
+            font-size: 9pt;
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: 2px solid #000;
+        }
+        
+        /* Summary Box */
+        .summary-box {
+            margin: 1rem 0;
+            padding-left: 1rem;
+        }
+        
+        .summary-box h3 {
+            margin-top: 0;
+            font-size: 11pt;
+        }
+        
+        /* Lists */
+        ul {
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        li {
+            padding: 0.15rem 0;
+            color: #000;
+        }
+        
+        li strong {
+            font-weight: 600;
+        }
+        
+        /* No data message */
+        .no-data {
+            text-align: center;
+            padding: 1rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 9pt;
+            border-top: 1px solid #000;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Edge SLM Benchmark Report</h1>
+            <p class="timestamp">Generated: 2025-12-23 22:04:16</p>
+        </div>
+    </header>
+    
+    <main class="container">
+        <section class="section">
+            <h2>Executive Summary</h2>
+            <p>
+                This report presents the benchmark results for Small Language Models (SLMs) 
+                evaluated on Apple Silicon hardware in a simulated banking context.
+            </p>
+        </section>
+        
+        <section class="section">
+            <h2>Performance Results</h2>
+            <div class="table-wrapper">
+                <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>Scenario</th>
+      <th>TTFT (ms)</th>
+      <th>TTFT p95 (ms)</th>
+      <th>Tokens/s</th>
+      <th>Peak RAM (MB)</th>
+      <th>Success Rate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>long_form_summarization</td>
+      <td>898.31</td>
+      <td>1092.98</td>
+      <td>28.73</td>
+      <td>27.42</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>structured_json_output</td>
+      <td>1811.07</td>
+      <td>1921.19</td>
+      <td>9.56</td>
+      <td>57.98</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>long_form_summarization</td>
+      <td>3334.29</td>
+      <td>4078.56</td>
+      <td>35.51</td>
+      <td>29.09</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>long_form_summarization</td>
+      <td>498.93</td>
+      <td>646.61</td>
+      <td>27.40</td>
+      <td>27.02</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>long_form_summarization</td>
+      <td>5853.57</td>
+      <td>6761.23</td>
+      <td>39.65</td>
+      <td>28.83</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>interactive_assistant</td>
+      <td>1168.77</td>
+      <td>1573.77</td>
+      <td>36.19</td>
+      <td>44.52</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>interactive_assistant</td>
+      <td>519.24</td>
+      <td>629.38</td>
+      <td>41.32</td>
+      <td>30.17</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>structured_json_output</td>
+      <td>4250.62</td>
+      <td>4746.20</td>
+      <td>23.70</td>
+      <td>30.72</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>structured_json_output</td>
+      <td>1109.77</td>
+      <td>1273.52</td>
+      <td>14.87</td>
+      <td>47.47</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>structured_json_output</td>
+      <td>984.88</td>
+      <td>1145.97</td>
+      <td>14.89</td>
+      <td>33.23</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>long_form_summarization</td>
+      <td>664.91</td>
+      <td>804.39</td>
+      <td>31.42</td>
+      <td>26.48</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>interactive_assistant</td>
+      <td>3022.31</td>
+      <td>3319.97</td>
+      <td>44.32</td>
+      <td>64.27</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>interactive_assistant</td>
+      <td>489.86</td>
+      <td>560.05</td>
+      <td>38.87</td>
+      <td>31.12</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>interactive_assistant</td>
+      <td>789.61</td>
+      <td>992.44</td>
+      <td>26.01</td>
+      <td>28.06</td>
+      <td>1.00</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>structured_json_output</td>
+      <td>2721.03</td>
+      <td>4660.66</td>
+      <td>19.23</td>
+      <td>52.83</td>
+      <td>1.00</td>
+    </tr>
+  </tbody>
+</table>
+            </div>
+        </section>
+        
+        <section class="section">
+            <h2>Capability Results</h2>
+            <div class="table-wrapper">
+                <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>Dataset</th>
+      <th>Accuracy</th>
+      <th>Macro F1</th>
+      <th>Samples</th>
+      <th>Avg Latency (ms)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>financial_phrasebank</td>
+      <td>0.7268</td>
+      <td>0.7385</td>
+      <td>970</td>
+      <td>352.3500</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>banking77</td>
+      <td>0.6398</td>
+      <td>0.6128</td>
+      <td>3076</td>
+      <td>322.0100</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>financial_phrasebank</td>
+      <td>0.7351</td>
+      <td>0.7550</td>
+      <td>970</td>
+      <td>208.7500</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>banking77</td>
+      <td>0.6343</td>
+      <td>0.6045</td>
+      <td>3076</td>
+      <td>516.1700</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>financial_phrasebank</td>
+      <td>0.7268</td>
+      <td>0.7256</td>
+      <td>970</td>
+      <td>189.4200</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>banking77</td>
+      <td>0.5940</td>
+      <td>0.5634</td>
+      <td>3076</td>
+      <td>259.5500</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>banking77</td>
+      <td>0.6031</td>
+      <td>0.5788</td>
+      <td>3076</td>
+      <td>2285.6900</td>
+    </tr>
+    <tr>
+      <td>mistralai/ministral-3-3b</td>
+      <td>humaneval_mini</td>
+      <td>0.0000</td>
+      <td>0.0000</td>
+      <td>164</td>
+      <td>565.3700</td>
+    </tr>
+    <tr>
+      <td>google/gemma-3n-e4b</td>
+      <td>humaneval_mini</td>
+      <td>0.0000</td>
+      <td>0.0000</td>
+      <td>164</td>
+      <td>6029.4600</td>
+    </tr>
+    <tr>
+      <td>qwen/qwen3-vl-4b</td>
+      <td>humaneval_mini</td>
+      <td>0.0000</td>
+      <td>0.0000</td>
+      <td>164</td>
+      <td>3054.2300</td>
+    </tr>
+  </tbody>
+</table>
+            </div>
+        </section>
+        
+        
+        
+        <section class="section">
+            <h2>Methodology</h2>
+            
+            <h3>Hardware</h3>
+            <ul>
+                <li>Consumer-grade Apple Silicon laptop (16 GB unified memory class)</li>
+                <li>On-device inference via LM Studio</li>
+            </ul>
+            
+            <h3>Configuration</h3>
+            <ul>
+                <li><strong>Temperature:</strong> 0 (deterministic)</li>
+                <li><strong>Runs:</strong> 20 per scenario with 3 warm-up runs</li>
+                <li><strong>Power:</strong> Machine plugged in, power saving disabled</li>
+            </ul>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Report generated by Edge SLM Benchmark Framework</p>
+    </footer>
+</body>
+</html>

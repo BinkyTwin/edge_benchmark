@@ -38,11 +38,11 @@ env/
 
 # Results (large files, regeneratable)
 #results/*.jsonl
-results/*.csv
-results/harness_output/
+#results/*.csv
+#results/harness_output/
 
 # Reports (regeneratable)
-report/
+#report/
 
 # Model files (too large for git)
 *.gguf

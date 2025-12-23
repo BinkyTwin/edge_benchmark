@@ -224,85 +224,282 @@ class ReportGenerator:
         return "\n".join(lines)
     
     def generate_html_report(self) -> str:
-        """Génère un rapport au format HTML."""
-        # Convertir le markdown en HTML simple
-        md_content = self.generate_markdown_report()
+        """Génère un rapport au format HTML avec de vrais tableaux."""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        html = f"""<!DOCTYPE html>
+        # Générer les tableaux HTML
+        perf_df = self.generate_performance_table()
+        cap_df = self.generate_capability_table()
+        
+        perf_table_html = perf_df.to_html(
+            index=False, 
+            classes='data-table',
+            border=0,
+            float_format=lambda x: f'{x:.2f}' if isinstance(x, float) else x
+        ) if not perf_df.empty else '<p class="no-data">Aucun résultat de performance disponible.</p>'
+        
+        cap_table_html = cap_df.to_html(
+            index=False,
+            classes='data-table',
+            border=0,
+            float_format=lambda x: f'{x:.4f}' if isinstance(x, float) else x
+        ) if not cap_df.empty else '<p class="no-data">Aucun résultat de capacité disponible.</p>'
+        
+        # Générer la section compliance si disponible
+        compliance_html = ""
+        if self.compliance_results:
+            compliance_html = '<section class="section"><h2>Compliance Analysis</h2>'
+            
+            for key, data in self.compliance_results.items():
+                if "risk" in key.lower():
+                    summary = data.get("summary", {})
+                    compliance_html += '''
+                    <div class="summary-box">
+                        <h3>Risk Summary</h3>
+                        <ul>
+                            <li><strong>Total Risks:</strong> {}</li>
+                            <li><strong>Total Controls:</strong> {}</li>
+                        </ul>
+                    </div>
+                    '''.format(
+                        summary.get('total_risks', 'N/A'),
+                        summary.get('total_controls', 'N/A')
+                    )
+                    
+                    if "key_findings" in summary:
+                        compliance_html += '<div class="summary-box"><h3>Key Findings</h3><ul>'
+                        for finding in summary["key_findings"]:
+                            compliance_html += f'<li>{finding}</li>'
+                        compliance_html += '</ul></div>'
+                
+                elif "license" in key.lower():
+                    compliance_html += '<div class="summary-box"><h3>License Audit</h3><ul>'
+                    models = data.get("models", {})
+                    for model_key, model_data in models.items():
+                        license_info = model_data.get("license_info", {})
+                        compliance_html += '<li><strong>{}:</strong> {}</li>'.format(
+                            license_info.get('model_name', model_key),
+                            license_info.get('license_type', 'Unknown')
+                        )
+                    compliance_html += '</ul></div>'
+            
+            compliance_html += '</section>'
+        
+        html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edge SLM Benchmark Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
     <style>
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-            background: #f5f5f5;
-            color: #333;
+        * {{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }}
-        h1 {{ color: #1a1a2e; border-bottom: 3px solid #4a4a8a; padding-bottom: 0.5rem; }}
-        h2 {{ color: #4a4a8a; margin-top: 2rem; }}
-        h3 {{ color: #666; }}
-        table {{
+        
+        body {{
+            font-family: 'Source Serif 4', 'Times New Roman', Times, serif;
+            background: #ffffff;
+            color: #000000;
+            line-height: 1.5;
+            font-size: 11pt;
+        }}
+        
+        .container {{
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 3rem;
+        }}
+        
+        /* Header */
+        header {{
+            text-align: center;
+            padding: 2rem 0 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #000;
+        }}
+        
+        h1 {{
+            font-size: 18pt;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #000;
+        }}
+        
+        .timestamp {{
+            color: #444;
+            font-size: 10pt;
+            font-style: italic;
+        }}
+        
+        /* Sections */
+        .section {{
+            margin-bottom: 2rem;
+        }}
+        
+        h2 {{
+            font-size: 14pt;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #000;
+            color: #000;
+        }}
+        
+        h3 {{
+            font-size: 12pt;
+            font-weight: 600;
+            margin: 1.25rem 0 0.75rem;
+            color: #000;
+        }}
+        
+        p {{
+            color: #000;
+            margin-bottom: 0.75rem;
+            text-align: justify;
+        }}
+        
+        /* Tables */
+        .table-wrapper {{
+            overflow-x: auto;
+            margin: 1rem 0;
+        }}
+        
+        .data-table {{
             width: 100%;
             border-collapse: collapse;
+            font-size: 10pt;
             margin: 1rem 0;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }}
-        th, td {{
-            padding: 0.75rem;
+        
+        .data-table th {{
+            background: #fff;
+            color: #000;
+            font-weight: 700;
+            padding: 0.5rem 0.75rem;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-top: 2px solid #000;
+            border-bottom: 1px solid #000;
         }}
-        th {{
-            background: #4a4a8a;
-            color: white;
+        
+        .data-table td {{
+            padding: 0.4rem 0.75rem;
+            border-bottom: 1px solid #ccc;
+            color: #000;
+            font-size: 9pt;
         }}
-        tr:hover {{ background: #f0f0f5; }}
-        code {{
-            background: #e8e8e8;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
+        
+        .data-table tr:last-child td {{
+            border-bottom: 2px solid #000;
         }}
+        
+        /* Summary Box */
         .summary-box {{
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin: 1rem 0;
+            padding-left: 1rem;
         }}
-        ul {{ list-style-type: disc; padding-left: 2rem; }}
-        li {{ margin: 0.5rem 0; }}
+        
+        .summary-box h3 {{
+            margin-top: 0;
+            font-size: 11pt;
+        }}
+        
+        /* Lists */
+        ul {{
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }}
+        
+        li {{
+            padding: 0.15rem 0;
+            color: #000;
+        }}
+        
+        li strong {{
+            font-weight: 600;
+        }}
+        
+        /* No data message */
+        .no-data {{
+            text-align: center;
+            padding: 1rem;
+            color: #666;
+            font-style: italic;
+        }}
+        
+        /* Footer */
+        footer {{
+            text-align: center;
+            padding: 1.5rem;
+            color: #666;
+            font-size: 9pt;
+            border-top: 1px solid #000;
+            margin-top: 2rem;
+            font-style: italic;
+        }}
     </style>
 </head>
 <body>
-    <article>
-"""
+    <header>
+        <div class="container">
+            <h1>Edge SLM Benchmark Report</h1>
+            <p class="timestamp">Generated: {timestamp}</p>
+        </div>
+    </header>
+    
+    <main class="container">
+        <section class="section">
+            <h2>Executive Summary</h2>
+            <p>
+                This report presents the benchmark results for Small Language Models (SLMs) 
+                evaluated on Apple Silicon hardware in a simulated banking context.
+            </p>
+        </section>
         
-        # Conversion simple MD -> HTML
-        import re
+        <section class="section">
+            <h2>Performance Results</h2>
+            <div class="table-wrapper">
+                {perf_table_html}
+            </div>
+        </section>
         
-        content = md_content
-        content = re.sub(r'^# (.+)$', r'<h1>\1</h1>', content, flags=re.MULTILINE)
-        content = re.sub(r'^## (.+)$', r'<h2>\1</h2>', content, flags=re.MULTILINE)
-        content = re.sub(r'^### (.+)$', r'<h3>\1</h3>', content, flags=re.MULTILINE)
-        content = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', content)
-        content = re.sub(r'\*(.+?)\*', r'<em>\1</em>', content)
-        content = re.sub(r'^- (.+)$', r'<li>\1</li>', content, flags=re.MULTILINE)
-        content = re.sub(r'(<li>.*</li>\n)+', r'<ul>\g<0></ul>', content)
-        content = content.replace('\n\n', '</p><p>')
-        content = f'<p>{content}</p>'
+        <section class="section">
+            <h2>Capability Results</h2>
+            <div class="table-wrapper">
+                {cap_table_html}
+            </div>
+        </section>
         
-        html += content
-        html += """
-    </article>
+        {compliance_html}
+        
+        <section class="section">
+            <h2>Methodology</h2>
+            
+            <h3>Hardware</h3>
+            <ul>
+                <li>Consumer-grade Apple Silicon laptop (16 GB unified memory class)</li>
+                <li>On-device inference via LM Studio</li>
+            </ul>
+            
+            <h3>Configuration</h3>
+            <ul>
+                <li><strong>Temperature:</strong> 0 (deterministic)</li>
+                <li><strong>Runs:</strong> 20 per scenario with 3 warm-up runs</li>
+                <li><strong>Power:</strong> Machine plugged in, power saving disabled</li>
+            </ul>
+        </section>
+    </main>
+    
+    <footer>
+        <p>Report generated by Edge SLM Benchmark Framework</p>
+    </footer>
 </body>
-</html>
-"""
+</html>'''
         return html
     
     def generate_csv_exports(self):

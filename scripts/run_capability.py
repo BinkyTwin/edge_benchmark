@@ -73,11 +73,12 @@ def main():
             "financial_phrasebank", 
             "banking_all",
             "realistic",
+            "extraction",  # Nouveau: JSON extraction seul
             "coding",
             "harness",
             "all",
         ],
-        help="Task to run",
+        help="Task to run (extraction = JSON extraction only)",
     )
     parser.add_argument(
         "--model",
@@ -309,6 +310,50 @@ def run_single_task(task: str, model_id: str, client: LMStudioClient, args) -> s
         )
         evaluator.save_result(result)
         result_file = f"coding_humaneval_{model_id.replace('/', '_')}.json"
+        
+    elif task == "extraction":
+        # Test uniquement l'extraction JSON (pour debug/optimisation)
+        from src.capability.realistic_scenarios import RealisticScenariosEvaluator
+        
+        evaluator = RealisticScenariosEvaluator(client, results_dir=args.results_dir)
+        result = evaluator.evaluate_info_extraction(
+            model_id=model_id,
+            num_samples=args.sample_size or 30,
+            progress_bar=not args.no_progress,
+        )
+        
+        # Sauvegarder le résultat
+        import json
+        from datetime import datetime
+        
+        model_name = model_id.replace("/", "_")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        result_file = f"extraction_test_{model_name}_{timestamp}.json"
+        filepath = args.results_dir / result_file
+        
+        with open(filepath, "w") as f:
+            json.dump(result.to_dict(), f, indent=2, ensure_ascii=False)
+        
+        # Afficher un résumé
+        print("\n" + "=" * 60)
+        print("EXTRACTION JSON TEST RESULTS")
+        print("=" * 60)
+        print(f"Model: {model_id}")
+        print(f"Samples: {result.num_samples}")
+        print(f"\nMétriques:")
+        for key, value in result.metrics.items():
+            if isinstance(value, float):
+                if 0 <= value <= 1:
+                    print(f"  {key}: {value:.2%}")
+                else:
+                    print(f"  {key}: {value:.2f}")
+            elif isinstance(value, dict):
+                print(f"  {key}: {value}")
+            else:
+                print(f"  {key}: {value}")
+        print(f"\nLatence moyenne: {result.avg_latency_ms:.1f} ms")
+        print(f"Temps total: {result.total_time_seconds:.1f} s")
+        print(f"\nRésultats sauvegardés: {filepath}")
         
     elif task == "harness":
         from src.capability.harness_runner import HarnessRunner

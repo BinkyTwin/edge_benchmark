@@ -1,0 +1,302 @@
+{
+  "model_id": "mistralai/ministral-3-3b",
+  "timestamp": "2025-12-23T12:32:32.552579",
+  "seed": 42,
+  "framework_version": "2.0",
+  "datasets_used": {
+    "flare_finqa": {
+      "name": "ChanceFocus/flare-finqa",
+      "description": "Financial QA with numerical reasoning from SEC filings",
+      "citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "split": "test"
+    },
+    "flare_fpb": {
+      "name": "ChanceFocus/flare-fpb",
+      "description": "Financial PhraseBank - Sentiment analysis on financial news",
+      "citation": "Malo et al., 2014 - Good debt or bad debt: Detecting semantic orientations in economic texts",
+      "split": "test"
+    },
+    "flare_convfinqa": {
+      "name": "ChanceFocus/flare-convfinqa",
+      "description": "Conversational Financial QA - Multi-turn dialogues",
+      "citation": "Chen et al., 2022 - ConvFinQA: Exploring the Chain of Numerical Reasoning",
+      "split": "test"
+    },
+    "sujet_rag_fr": {
+      "name": "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
+      "description": "French financial RAG dataset based on French company reports",
+      "citation": "Sujet AI, 2024 (Qualitative assessment - no gold answers available)",
+      "split": "train"
+    },
+    "twitter_financial": {
+      "name": "zeroshot/twitter-financial-news-sentiment",
+      "description": "Financial sentiment from Twitter/X posts",
+      "citation": "ZeroShot, 2023",
+      "split": "train"
+    }
+  },
+  "sample_size_rationale": {
+    "financial_qa": {
+      "n": 50,
+      "dataset_size": 1147,
+      "justification": "FinQA test set: 1147 samples. 50 samples provides 95% CI width ~±14% at 75% accuracy.",
+      "power": "Sufficient to detect 15% accuracy difference between models (alpha=0.05, power=0.8)"
+    },
+    "sentiment": {
+      "n": 100,
+      "dataset_size": 970,
+      "justification": "FPB test set: 970 samples. 100 samples provides 95% CI width ~±10% at baseline accuracy.",
+      "power": "Sufficient to detect 10% accuracy difference (alpha=0.05, power=0.85)"
+    },
+    "conversational_qa": {
+      "n": 30,
+      "dataset_size": 1490,
+      "justification": "ConvFinQA test set: 1490 samples. 30 samples for exploratory multi-turn evaluation.",
+      "power": "Sufficient for preliminary assessment; larger samples recommended for publication claims"
+    },
+    "info_extraction": {
+      "n": 30,
+      "dataset_size": 1147,
+      "justification": "Uses FinQA contexts. 30 samples for structural validity assessment.",
+      "power": "Qualitative metric (JSON validity) - sample sufficient for capability demonstration",
+      "metric_type": "structural_validity",
+      "limitation": "No gold JSON available - measures structure not content accuracy"
+    },
+    "multilingual_fr": {
+      "n": 30,
+      "dataset_size": 28880,
+      "justification": "Sujet FR dataset: 28880 samples. 30 samples for qualitative language assessment.",
+      "power": "Qualitative only - no gold answers available for quantitative evaluation",
+      "metric_type": "qualitative_assessment",
+      "limitation": "No gold answers - metrics are heuristic (language detection, response length)"
+    },
+    "twitter_sentiment": {
+      "n": 50,
+      "dataset_size": 9543,
+      "justification": "Twitter Financial: 9543 train samples. 50 samples for cross-domain validation.",
+      "power": "Sufficient to validate sentiment transfer across domains"
+    }
+  },
+  "results": {
+    "financial_qa": {
+      "scenario_name": "financial_qa",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 50,
+      "metrics": {
+        "exact_match_strict": 0.08,
+        "exact_match_strict_ci_95": [
+          0.02,
+          0.16
+        ],
+        "numerical_accuracy": 0.26,
+        "numerical_accuracy_ci_95": [
+          0.14,
+          0.38
+        ],
+        "f1_score": 0.0048,
+        "f1_score_ci_95": [
+          0.0011,
+          0.0098
+        ],
+        "answer_present": 0.1,
+        "answer_present_ci_95": [
+          0.02,
+          0.2
+        ],
+        "success_rate": 1.0
+      },
+      "avg_latency_ms": 12403.91,
+      "total_time_seconds": 621.55,
+      "dataset_source": "ChanceFocus/flare-finqa",
+      "dataset_citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "FinQA test set: 1147 samples. 50 samples provides 95% CI width ~±14% at 75% accuracy.",
+        "power_analysis": "Sufficient to detect 15% accuracy difference between models (alpha=0.05, power=0.8)",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T11:58:21.396338"
+    },
+    "sentiment": {
+      "scenario_name": "financial_sentiment",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 100,
+      "metrics": {
+        "accuracy": 0.66,
+        "accuracy_ci_95": [
+          0.56,
+          0.75
+        ],
+        "accuracy_std": 0.4761,
+        "macro_f1": 0.6586,
+        "correct": 66,
+        "total": 100,
+        "per_class_f1": {
+          "positive": 0.6923,
+          "negative": 0.6471,
+          "neutral": 0.6364
+        }
+      },
+      "avg_latency_ms": 246.88,
+      "total_time_seconds": 24.73,
+      "dataset_source": "ChanceFocus/flare-fpb",
+      "dataset_citation": "Malo et al., 2014 - Good debt or bad debt: Detecting semantic orientations in economic texts",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "FPB test set: 970 samples. 100 samples provides 95% CI width ~±10% at baseline accuracy.",
+        "power_analysis": "Sufficient to detect 10% accuracy difference (alpha=0.05, power=0.85)",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T11:59:22.549896"
+    },
+    "conversational": {
+      "scenario_name": "conversational_qa",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 30,
+      "metrics": {
+        "exact_match_strict": 0.0667,
+        "exact_match_strict_ci_95": [
+          0.0,
+          0.1667
+        ],
+        "numerical_accuracy": 0.1667,
+        "numerical_accuracy_ci_95": [
+          0.0667,
+          0.3
+        ],
+        "answer_present": 0.0667,
+        "answer_present_ci_95": [
+          0.0,
+          0.1667
+        ],
+        "success_rate": 1.0
+      },
+      "avg_latency_ms": 8475.47,
+      "total_time_seconds": 254.52,
+      "dataset_source": "ChanceFocus/flare-convfinqa",
+      "dataset_citation": "Chen et al., 2022 - ConvFinQA: Exploring the Chain of Numerical Reasoning",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "ConvFinQA test set: 1490 samples. 30 samples for exploratory multi-turn evaluation.",
+        "power_analysis": "Sufficient for preliminary assessment; larger samples recommended for publication claims",
+        "limitations": [
+          "Multi-turn context may be truncated"
+        ]
+      },
+      "timestamp": "2025-12-23T12:04:04.493059"
+    },
+    "extraction": {
+      "scenario_name": "info_extraction",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 30,
+      "metrics": {
+        "json_valid_rate": 0.8333,
+        "json_valid_rate_ci_95": [
+          0.7,
+          0.9667
+        ],
+        "valid_json_count": 25,
+        "avg_fields_extracted": 3.3333,
+        "avg_fields_ci_95": [
+          2.8,
+          3.8667
+        ],
+        "grounding_rate": 0.7822,
+        "grounding_rate_ci_95": [
+          0.6453,
+          0.9023
+        ],
+        "json_mode_stats": {
+          "none": 5,
+          "json_schema_constrained": 24,
+          "prompt_only_fallback": 1
+        },
+        "metric_type": "structural_validity_with_grounding"
+      },
+      "avg_latency_ms": 32161.32,
+      "total_time_seconds": 1153.92,
+      "dataset_source": "ChanceFocus/flare-finqa",
+      "dataset_citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "methodology": {
+        "metric_type": "structural_validity_with_grounding",
+        "sample_size_justification": "Uses FinQA contexts. 30 samples for structural validity assessment.",
+        "power_analysis": "Qualitative metric (JSON validity) - sample sufficient for capability demonstration",
+        "json_strategy": "Try constrained mode first, fallback to manual extraction",
+        "grounding_explanation": "Measures % of numbers in JSON that exist in source text",
+        "limitations": [
+          "No gold JSON available - measures structure not content accuracy",
+          "Field presence does not guarantee field correctness",
+          "Grounding only checks numbers, not text content accuracy"
+        ]
+      },
+      "timestamp": "2025-12-23T12:24:13.274524"
+    },
+    "twitter_sentiment": {
+      "scenario_name": "twitter_sentiment",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 50,
+      "metrics": {
+        "accuracy": 0.52,
+        "accuracy_ci_95": [
+          0.38,
+          0.66
+        ],
+        "accuracy_std": 0.5047,
+        "macro_f1": 0.5002,
+        "correct": 26,
+        "total": 50,
+        "per_class_f1": {
+          "positive": 0.4,
+          "negative": 0.5517,
+          "neutral": 0.549
+        }
+      },
+      "avg_latency_ms": 234.31,
+      "total_time_seconds": 11.74,
+      "dataset_source": "zeroshot/twitter-financial-news-sentiment",
+      "dataset_citation": "ZeroShot, 2023",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "Twitter Financial: 9543 train samples. 50 samples for cross-domain validation.",
+        "power_analysis": "Sufficient to validate sentiment transfer across domains",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T12:25:31.178834"
+    },
+    "multilingual_fr": {
+      "scenario_name": "multilingual_fr",
+      "model_id": "mistralai/ministral-3-3b",
+      "num_samples": 30,
+      "metrics": {
+        "french_response_rate": 1.0,
+        "french_response_rate_ci_95": [
+          1.0,
+          1.0
+        ],
+        "avg_response_length": 614.6333,
+        "avg_response_length_ci_95": [
+          511.1875,
+          703.235
+        ],
+        "success_rate": 1.0,
+        "metric_type": "qualitative_assessment",
+        "is_qualitative": true
+      },
+      "avg_latency_ms": 8989.66,
+      "total_time_seconds": 269.78,
+      "dataset_source": "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
+      "dataset_citation": "Sujet AI, 2024 (Qualitative assessment - no gold answers available)",
+      "methodology": {
+        "metric_type": "qualitative_assessment",
+        "sample_size_justification": "Sujet FR dataset: 28880 samples. 30 samples for qualitative language assessment.",
+        "power_analysis": "Qualitative only - no gold answers available for quantitative evaluation",
+        "limitations": [
+          "No gold answers available - metrics are heuristic",
+          "Language detection is based on simple keyword matching",
+          "Cannot assess response correctness or relevance quantitatively"
+        ]
+      },
+      "timestamp": "2025-12-23T12:32:32.545709"
+    }
+  }
+}

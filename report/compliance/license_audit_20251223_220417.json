@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "title": "License Audit Report",
+    "generated_at": "2025-12-23T22:04:17.783688",
+    "num_models": 3
+  },
+  "models": {
+    "gemma-3n-e4b": {
+      "license_info": {
+        "model_name": "Gemma 3n E4B",
+        "publisher": "Google",
+        "license_type": "Gemma Terms of Use",
+        "license_url": "https://ai.google.dev/gemma/terms",
+        "commercial_use": "restricted",
+        "modification_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [
+          "Prohibited uses include weapons development, surveillance, etc.",
+          "Must include attribution in derivative works",
+          "Cannot use Google trademarks without permission",
+          "Some usage restrictions for high-risk applications"
+        ],
+        "attribution_required": true,
+        "notes": "\n        Gemma Terms of Use is a custom license more restrictive than Apache 2.0.\n        Commercial use is allowed but subject to prohibited use cases.\n        Requires careful review for regulated industries like banking.\n        ",
+        "verified": true,
+        "verified_date": "2024-12-01",
+        "verified_by": null
+      },
+      "commercial_use_check": {
+        "allowed": true,
+        "status": "restricted",
+        "message": "Commercial use is allowed with restrictions under Gemma Terms of Use",
+        "restrictions": [
+          "Prohibited uses include weapons development, surveillance, etc.",
+          "Must include attribution in derivative works",
+          "Cannot use Google trademarks without permission",
+          "Some usage restrictions for high-risk applications"
+        ]
+      },
+      "banking_compatibility_check": {
+        "compatible": true,
+        "risk_level": "medium",
+        "license_type": "Gemma Terms of Use",
+        "issues": [
+          "Gemma license has specific prohibited uses",
+          "License mentions high-risk application restrictions"
+        ],
+        "recommendations": [
+          "Verify banking use case is not in prohibited list",
+          "Confirm banking assistant is not considered high-risk"
+        ],
+        "verified": true
+      }
+    },
+    "qwen3-vl-4b": {
+      "license_info": {
+        "model_name": "Qwen3-VL 4B Instruct",
+        "publisher": "Alibaba Cloud (Qwen Team)",
+        "license_type": "Apache 2.0",
+        "license_url": "https://github.com/QwenLM/Qwen3-VL/blob/main/LICENSE",
+        "commercial_use": "allowed",
+        "modification_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [],
+        "attribution_required": true,
+        "notes": "\n        Standard Apache 2.0 license. Very permissive.\n        Commercial use, modification, and redistribution are all allowed.\n        Only requirement is attribution and license notice preservation.\n        ",
+        "verified": true,
+        "verified_date": "2024-12-01",
+        "verified_by": null
+      },
+      "commercial_use_check": {
+        "allowed": true,
+        "status": "allowed",
+        "message": "Commercial use is allowed under Apache 2.0",
+        "restrictions": []
+      },
+      "banking_compatibility_check": {
+        "compatible": true,
+        "risk_level": "low",
+        "license_type": "Apache 2.0",
+        "issues": [
+          "No issues identified"
+        ],
+        "recommendations": [
+          "No additional actions required"
+        ],
+        "verified": true
+      }
+    },
+    "ministral-3-3b": {
+      "license_info": {
+        "model_name": "Ministral 3 3B",
+        "publisher": "Mistral AI",
+        "license_type": "Apache 2.0",
+        "license_url": "https://mistral.ai/news/mistral-3",
+        "commercial_use": "allowed",
+        "modification_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [],
+        "attribution_required": true,
+        "notes": "\n        Apache 2.0 license. Fully permissive for commercial use.\n        Mistral's edge-oriented model released under open license.\n        ",
+        "verified": true,
+        "verified_date": "2024-12-01",
+        "verified_by": null
+      },
+      "commercial_use_check": {
+        "allowed": true,
+        "status": "allowed",
+        "message": "Commercial use is allowed under Apache 2.0",
+        "restrictions": []
+      },
+      "banking_compatibility_check": {
+        "compatible": true,
+        "risk_level": "low",
+        "license_type": "Apache 2.0",
+        "issues": [
+          "No issues identified"
+        ],
+        "recommendations": [
+          "No additional actions required"
+        ],
+        "verified": true
+      }
+    }
+  },
+  "summary": {
+    "fully_permissive": 2,
+    "restricted": 1,
+    "custom": 0,
+    "banking_compatible": 3
+  }
+}

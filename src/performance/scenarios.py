@@ -165,11 +165,21 @@ Key expectations include:
 Provide a concise 2-3 paragraph summary highlighting the key financial metrics and business developments.""",
 ]
 
+# Prompt système optimisé pour extraction JSON (rôle d'auditeur strict)
+JSON_EXTRACTION_SYSTEM_PROMPT = """You are a strict financial data auditor.
+Your ONLY goal is to extract raw data from documents into JSON.
+
+RULES FOR DATA INTEGRITY:
+1. TRUTH OVER COMPLETION: If a value is not explicitly stated, use null. NEVER guess.
+2. VERIFICATION: Before writing a value, locate it in the source. If not there, use null.
+3. NUMBERS: Extract exact values. Handle currency symbols and formats correctly.
+4. STRICT JSON: Output only the JSON object. No preamble, no explanation."""
+
 JSON_EXTRACTION_PROMPTS = [
     # Documents pour extraction JSON (~500-1000 tokens)
     {
-        "prompt": """Extract the key information from this bank transaction notification and return as JSON:
-
+        "system_prompt": JSON_EXTRACTION_SYSTEM_PROMPT,
+        "prompt": """[SOURCE DOCUMENT]
 TRANSACTION NOTIFICATION
 ========================
 Date: December 15, 2024
@@ -198,37 +208,149 @@ Security Verification:
 - Device: iPhone 14 Pro (Registered Device)
 
 Please contact customer service at 1-800-555-0123 if you did not authorize this transaction.
+[/SOURCE DOCUMENT]
 
-Extract and return the information as a valid JSON object.""",
+[INSTRUCTION]
+Extract the transaction data into JSON. 
+For each value, ensure it exists EXACTLY in the source document. Use null if not found.
+[/INSTRUCTION]
+
+JSON:""",
         "expected_fields": [
             "transaction_date", "transaction_time", "reference_number",
             "account_holder", "transaction_type", "amount", "recipient_name",
             "status", "remaining_balance"
         ],
-        # Format LM Studio: json_schema avec schéma complet
+        # Format LM Studio: json_schema avec strict="true" (STRING, pas boolean!)
+        # https://lmstudio.ai/docs/developer/openai-compat/structured-output
+        # Note: Pour MLX, Outlines est utilisé. Pour GGUF, llama.cpp grammar.
         "response_format": {
             "type": "json_schema",
             "json_schema": {
                 "name": "transaction_extraction",
+                "strict": "true",
                 "schema": {
                     "type": "object",
                     "properties": {
-                        "transaction_date": {"type": "string"},
-                        "transaction_time": {"type": "string"},
-                        "reference_number": {"type": "string"},
-                        "account_holder": {"type": "string"},
-                        "account_type": {"type": "string"},
-                        "transaction_type": {"type": "string"},
-                        "amount": {"type": "number"},
-                        "currency": {"type": "string"},
-                        "recipient_name": {"type": "string"},
-                        "recipient_bank": {"type": "string"},
-                        "purpose": {"type": "string"},
-                        "status": {"type": "string"},
-                        "remaining_balance": {"type": "number"},
-                        "security_verified": {"type": "boolean"}
+                        "transaction_date": {
+                            "type": ["string", "null"],
+                            "description": "Date of transaction (e.g., December 15, 2024)"
+                        },
+                        "transaction_time": {
+                            "type": ["string", "null"],
+                            "description": "Time of transaction with timezone"
+                        },
+                        "reference_number": {
+                            "type": ["string", "null"],
+                            "description": "Unique transaction reference"
+                        },
+                        "account_holder": {
+                            "type": ["string", "null"],
+                            "description": "Full name of account holder"
+                        },
+                        "account_type": {
+                            "type": ["string", "null"],
+                            "description": "Type of account"
+                        },
+                        "transaction_type": {
+                            "type": ["string", "null"],
+                            "description": "Type of transaction (Wire Transfer, etc.)"
+                        },
+                        "amount": {
+                            "type": ["number", "null"],
+                            "description": "Transaction amount as number"
+                        },
+                        "currency": {
+                            "type": ["string", "null"],
+                            "description": "Currency code (USD, EUR, etc.)"
+                        },
+                        "recipient_name": {
+                            "type": ["string", "null"],
+                            "description": "Name of recipient"
+                        },
+                        "recipient_bank": {
+                            "type": ["string", "null"],
+                            "description": "Recipient's bank name"
+                        },
+                        "purpose": {
+                            "type": ["string", "null"],
+                            "description": "Purpose of transaction"
+                        },
+                        "status": {
+                            "type": ["string", "null"],
+                            "description": "Transaction status"
+                        },
+                        "remaining_balance": {
+                            "type": ["number", "null"],
+                            "description": "Balance after transaction"
+                        },
+                        "security_verified": {
+                            "type": ["boolean", "null"],
+                            "description": "Whether security checks passed"
+                        }
                     },
                     "required": ["transaction_date", "transaction_type", "amount", "status"]
+                }
+            }
+        }
+    },
+    # Deuxième exemple: relevé de compte
+    {
+        "system_prompt": JSON_EXTRACTION_SYSTEM_PROMPT,
+        "prompt": """[SOURCE DOCUMENT]
+ACCOUNT STATEMENT SUMMARY
+=========================
+Statement Period: November 1-30, 2024
+Account: Business Checking ****9182
+Account Holder: TechStart Solutions Inc.
+
+Opening Balance: $128,456.78
+Total Credits: $89,234.00 (12 transactions)
+Total Debits: $67,891.45 (34 transactions)
+Closing Balance: $149,799.33
+
+Key Transactions:
+- Nov 5: Payroll Processing -$45,000.00
+- Nov 12: Client Payment +$52,000.00
+- Nov 18: Vendor Payment -$12,500.00
+- Nov 25: Investment Transfer +$25,000.00
+
+Interest Earned: $234.00 (APY: 2.15%)
+Service Fees: $0.00 (waived - business premium)
+[/SOURCE DOCUMENT]
+
+[INSTRUCTION]
+Extract the account statement data into JSON.
+For each value, ensure it exists EXACTLY in the source document. Use null if not found.
+[/INSTRUCTION]
+
+JSON:""",
+        "expected_fields": [
+            "statement_period", "account_type", "account_holder",
+            "opening_balance", "closing_balance", "total_credits", "total_debits"
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "account_statement_extraction",
+                "strict": "true",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "statement_period": {"type": ["string", "null"]},
+                        "account_type": {"type": ["string", "null"]},
+                        "account_holder": {"type": ["string", "null"]},
+                        "opening_balance": {"type": ["number", "null"]},
+                        "closing_balance": {"type": ["number", "null"]},
+                        "total_credits": {"type": ["number", "null"]},
+                        "total_debits": {"type": ["number", "null"]},
+                        "credit_count": {"type": ["integer", "null"]},
+                        "debit_count": {"type": ["integer", "null"]},
+                        "interest_earned": {"type": ["number", "null"]},
+                        "apy_rate": {"type": ["number", "null"]},
+                        "service_fees": {"type": ["number", "null"]}
+                    },
+                    "required": ["statement_period", "opening_balance", "closing_balance"]
                 }
             }
         }
@@ -365,9 +487,17 @@ class ScenarioExecutor:
             base_prompts = JSON_EXTRACTION_PROMPTS
             for i in range(num_prompts):
                 prompt_data = base_prompts[i % len(base_prompts)]
-                # Utiliser le format LM Studio: json_schema (pas json_object)
+                
+                # Construire les messages avec system prompt si disponible
+                messages = []
+                if "system_prompt" in prompt_data:
+                    messages.append({"role": "system", "content": prompt_data["system_prompt"]})
+                messages.append({"role": "user", "content": prompt_data["prompt"]})
+                
+                # Utiliser le format LM Studio: json_schema avec strict=True
+                # https://lmstudio.ai/docs/developer/openai-compat/structured-output
                 prompts.append({
-                    "messages": [{"role": "user", "content": prompt_data["prompt"]}],
+                    "messages": messages,
                     "max_tokens": scenario.max_tokens,
                     "response_format": prompt_data.get("response_format"),
                     "expected_fields": prompt_data.get("expected_fields", []),

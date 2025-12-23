@@ -1,0 +1,16 @@
+Model,Scenario,TTFT (ms),TTFT p95 (ms),Tokens/s,Peak RAM (MB),Success Rate
+google/gemma-3n-e4b,long_form_summarization,898.31,1092.98,28.73,27.42,1.0
+google/gemma-3n-e4b,structured_json_output,1811.07,1921.19,9.56,57.98,1.0
+google/gemma-3n-e4b,long_form_summarization,3334.29,4078.56,35.51,29.09,1.0
+mistralai/ministral-3-3b,long_form_summarization,498.93,646.61,27.4,27.02,1.0
+qwen/qwen3-vl-4b,long_form_summarization,5853.57,6761.23,39.65,28.83,1.0
+google/gemma-3n-e4b,interactive_assistant,1168.77,1573.77,36.19,44.52,1.0
+mistralai/ministral-3-3b,interactive_assistant,519.24,629.38,41.32,30.17,1.0
+qwen/qwen3-vl-4b,structured_json_output,4250.62,4746.2,23.7,30.72,1.0
+qwen/qwen3-vl-4b,structured_json_output,1109.77,1273.52,14.87,47.47,1.0
+mistralai/ministral-3-3b,structured_json_output,984.88,1145.97,14.89,33.23,1.0
+qwen/qwen3-vl-4b,long_form_summarization,664.91,804.39,31.42,26.48,1.0
+qwen/qwen3-vl-4b,interactive_assistant,3022.31,3319.97,44.32,64.27,1.0
+qwen/qwen3-vl-4b,interactive_assistant,489.86,560.05,38.87,31.12,1.0
+google/gemma-3n-e4b,interactive_assistant,789.61,992.44,26.01,28.06,1.0
+google/gemma-3n-e4b,structured_json_output,2721.03,4660.66,19.23,52.83,1.0

@@ -1,0 +1,530 @@
+{
+  "metadata": {
+    "title": "Risk Analysis Report - On-Device LLM Deployment",
+    "framework": "NIST AI RMF 1.0 + OWASP Top 10 LLM",
+    "generated_at": "2025-12-23T22:04:17.783177",
+    "scope": "Consumer-grade Apple Silicon laptop, banking context"
+  },
+  "threat_model": {
+    "assets": {
+      "model": "SLM quantifié (GGUF/MLX) déployé sur device",
+      "inference_data": "Données traitées pendant l'inférence (prompts, réponses)",
+      "device": "Laptop Apple Silicon avec le modèle",
+      "logs": "Logs d'inférence et métriques",
+      "credentials": "Éventuelles clés API ou tokens"
+    },
+    "adversaries": [
+      {
+        "type": "external_attacker",
+        "capability": "medium",
+        "motivation": "Accès aux données bancaires via prompt injection"
+      },
+      {
+        "type": "insider_threat",
+        "capability": "high",
+        "motivation": "Exfiltration de données via le modèle"
+      },
+      {
+        "type": "device_thief",
+        "capability": "low",
+        "motivation": "Accès physique au device perdu/volé"
+      }
+    ],
+    "attack_surfaces": [
+      "Input utilisateur (prompts) - risque injection",
+      "Documents ingérés dans le contexte",
+      "Sortie du modèle (réponses générées)",
+      "Stockage local (modèle, cache, logs)",
+      "Supply chain du modèle (origine, intégrité)"
+    ]
+  },
+  "risk_taxonomy": [
+    {
+      "id": "R01",
+      "category": "LLM01: Prompt Injection",
+      "title": "Prompt Injection via Documents",
+      "description": "Un document interne ou externe contenant des instructions malveillantes \n                pourrait manipuler le modèle pour révéler des informations sensibles \n                ou exécuter des actions non autorisées.",
+      "likelihood": "medium",
+      "impact": "high",
+      "inherent_risk": "high",
+      "residual_risk": "medium",
+      "assets": [
+        "inference_data",
+        "model"
+      ],
+      "nist_mapping": [
+        "MAP 1.1",
+        "MEASURE 2.7"
+      ],
+      "owasp_ref": "LLM01"
+    },
+    {
+      "id": "R02",
+      "category": "LLM06: Sensitive Information Disclosure",
+      "title": "Fuite de Données Sensibles via Réponses",
+      "description": "Le modèle pourrait inclure des informations sensibles (numéros de compte, \n                données client) dans ses réponses, que ce soit par mémorisation du contexte \n                ou par génération inappropriée.",
+      "likelihood": "medium",
+      "impact": "high",
+      "inherent_risk": "high",
+      "residual_risk": "low",
+      "assets": [
+        "inference_data"
+      ],
+      "nist_mapping": [
+        "MAP 1.5",
+        "MEASURE 2.11"
+      ],
+      "owasp_ref": "LLM06"
+    },
+    {
+      "id": "R03",
+      "category": "Device Loss/Theft",
+      "title": "Perte ou Vol du Device",
+      "description": "Un laptop contenant le modèle et potentiellement des données en cache \n                pourrait être perdu ou volé, exposant les assets locaux.",
+      "likelihood": "low",
+      "impact": "high",
+      "inherent_risk": "medium",
+      "residual_risk": "low",
+      "assets": [
+        "device",
+        "model",
+        "logs"
+      ],
+      "nist_mapping": [
+        "GOVERN 1.2",
+        "MAP 1.3"
+      ],
+      "owasp_ref": null
+    },
+    {
+      "id": "R04",
+      "category": "LLM05: Supply Chain Vulnerabilities",
+      "title": "Intégrité du Modèle (Supply Chain)",
+      "description": "Le modèle téléchargé pourrait être modifié, corrompu, ou provenir \n                d'une source non fiable. Absence de vérification d'intégrité.",
+      "likelihood": "low",
+      "impact": "high",
+      "inherent_risk": "medium",
+      "residual_risk": "low",
+      "assets": [
+        "model"
+      ],
+      "nist_mapping": [
+        "MAP 3.4",
+        "MEASURE 2.10"
+      ],
+      "owasp_ref": "LLM05"
+    },
+    {
+      "id": "R05",
+      "category": "Licensing/Compliance",
+      "title": "Non-Conformité Licensing",
+      "description": "Utilisation de modèles sans vérification des termes de licence, \n                pouvant entraîner des violations de propriété intellectuelle \n                ou des restrictions d'usage commercial.",
+      "likelihood": "medium",
+      "impact": "medium",
+      "inherent_risk": "medium",
+      "residual_risk": "low",
+      "assets": [
+        "model"
+      ],
+      "nist_mapping": [
+        "GOVERN 1.4"
+      ],
+      "owasp_ref": null
+    },
+    {
+      "id": "R06",
+      "category": "LLM09: Overreliance",
+      "title": "Sur-dépendance aux Réponses du Modèle",
+      "description": "Les utilisateurs pourraient faire confiance aveuglément aux réponses \n                du modèle sans vérification, entraînant des erreurs dans les processus \n                bancaires critiques.",
+      "likelihood": "medium",
+      "impact": "medium",
+      "inherent_risk": "medium",
+      "residual_risk": "low",
+      "assets": [
+        "inference_data"
+      ],
+      "nist_mapping": [
+        "MAP 1.6",
+        "MEASURE 3.3"
+      ],
+      "owasp_ref": "LLM09"
+    },
+    {
+      "id": "R07",
+      "category": "Data Exfiltration",
+      "title": "Exfiltration via Logs/Cache",
+      "description": "Les logs d'inférence ou le cache local pourraient contenir des données \n                sensibles et être exfiltrés via des vecteurs non contrôlés.",
+      "likelihood": "low",
+      "impact": "high",
+      "inherent_risk": "medium",
+      "residual_risk": "low",
+      "assets": [
+        "logs",
+        "inference_data"
+      ],
+      "nist_mapping": [
+        "MAP 1.5",
+        "MEASURE 2.11"
+      ],
+      "owasp_ref": null
+    }
+  ],
+  "controls": [
+    {
+      "id": "C01",
+      "title": "Chiffrement Disque (FileVault)",
+      "description": "Activer le chiffrement intégral du disque sur tous les devices.",
+      "type": "preventive",
+      "mitigates_risks": [
+        "R03",
+        "R07"
+      ],
+      "status": "implemented",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C02",
+      "title": "Validation des Entrées",
+      "description": "Implémenter une validation et sanitization des prompts utilisateur.",
+      "type": "preventive",
+      "mitigates_risks": [
+        "R01",
+        "R02"
+      ],
+      "status": "planned",
+      "effectiveness": "medium"
+    },
+    {
+      "id": "C03",
+      "title": "Registre des Modèles",
+      "description": "Maintenir un registre interne des modèles approuvés avec hash SHA256.",
+      "type": "preventive",
+      "mitigates_risks": [
+        "R04",
+        "R05"
+      ],
+      "status": "planned",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C04",
+      "title": "Politique de Logging Minimale",
+      "description": "Ne pas logger les données sensibles, purger régulièrement les logs.",
+      "type": "preventive",
+      "mitigates_risks": [
+        "R07",
+        "R02"
+      ],
+      "status": "planned",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C05",
+      "title": "Audit des Licences",
+      "description": "Vérifier et documenter les licences avant déploiement.",
+      "type": "preventive",
+      "mitigates_risks": [
+        "R05"
+      ],
+      "status": "implemented",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C06",
+      "title": "Monitoring des Sorties",
+      "description": "Détecter les patterns de données sensibles dans les réponses.",
+      "type": "detective",
+      "mitigates_risks": [
+        "R02",
+        "R06"
+      ],
+      "status": "planned",
+      "effectiveness": "medium"
+    },
+    {
+      "id": "C07",
+      "title": "Vérification Intégrité Modèle",
+      "description": "Vérifier le hash du modèle au démarrage.",
+      "type": "detective",
+      "mitigates_risks": [
+        "R04"
+      ],
+      "status": "planned",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C08",
+      "title": "Procédure de Wipe Distant",
+      "description": "Capacité à effacer les données du device à distance (MDM).",
+      "type": "corrective",
+      "mitigates_risks": [
+        "R03"
+      ],
+      "status": "planned",
+      "effectiveness": "high"
+    },
+    {
+      "id": "C09",
+      "title": "Human-in-the-Loop",
+      "description": "Exiger validation humaine pour les décisions critiques.",
+      "type": "corrective",
+      "mitigates_risks": [
+        "R06"
+      ],
+      "status": "implemented",
+      "effectiveness": "high"
+    }
+  ],
+  "risk_matrix": {
+    "inherent": {
+      "R01": {
+        "title": "Prompt Injection via Documents",
+        "category": "LLM01: Prompt Injection",
+        "level": "high"
+      },
+      "R02": {
+        "title": "Fuite de Données Sensibles via Réponses",
+        "category": "LLM06: Sensitive Information Disclosure",
+        "level": "high"
+      },
+      "R03": {
+        "title": "Perte ou Vol du Device",
+        "category": "Device Loss/Theft",
+        "level": "medium"
+      },
+      "R04": {
+        "title": "Intégrité du Modèle (Supply Chain)",
+        "category": "LLM05: Supply Chain Vulnerabilities",
+        "level": "medium"
+      },
+      "R05": {
+        "title": "Non-Conformité Licensing",
+        "category": "Licensing/Compliance",
+        "level": "medium"
+      },
+      "R06": {
+        "title": "Sur-dépendance aux Réponses du Modèle",
+        "category": "LLM09: Overreliance",
+        "level": "medium"
+      },
+      "R07": {
+        "title": "Exfiltration via Logs/Cache",
+        "category": "Data Exfiltration",
+        "level": "medium"
+      }
+    },
+    "residual": {
+      "R01": {
+        "title": "Prompt Injection via Documents",
+        "category": "LLM01: Prompt Injection",
+        "level": "medium"
+      },
+      "R02": {
+        "title": "Fuite de Données Sensibles via Réponses",
+        "category": "LLM06: Sensitive Information Disclosure",
+        "level": "low"
+      },
+      "R03": {
+        "title": "Perte ou Vol du Device",
+        "category": "Device Loss/Theft",
+        "level": "low"
+      },
+      "R04": {
+        "title": "Intégrité du Modèle (Supply Chain)",
+        "category": "LLM05: Supply Chain Vulnerabilities",
+        "level": "low"
+      },
+      "R05": {
+        "title": "Non-Conformité Licensing",
+        "category": "Licensing/Compliance",
+        "level": "low"
+      },
+      "R06": {
+        "title": "Sur-dépendance aux Réponses du Modèle",
+        "category": "LLM09: Overreliance",
+        "level": "low"
+      },
+      "R07": {
+        "title": "Exfiltration via Logs/Cache",
+        "category": "Data Exfiltration",
+        "level": "low"
+      }
+    }
+  },
+  "control_mapping": {
+    "R01": {
+      "risk_title": "Prompt Injection via Documents",
+      "inherent_risk": "high",
+      "controls": [
+        {
+          "id": "C02",
+          "title": "Validation des Entrées",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "medium"
+        }
+      ],
+      "residual_risk": "medium"
+    },
+    "R02": {
+      "risk_title": "Fuite de Données Sensibles via Réponses",
+      "inherent_risk": "high",
+      "controls": [
+        {
+          "id": "C02",
+          "title": "Validation des Entrées",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "medium"
+        },
+        {
+          "id": "C04",
+          "title": "Politique de Logging Minimale",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "high"
+        },
+        {
+          "id": "C06",
+          "title": "Monitoring des Sorties",
+          "type": "detective",
+          "status": "planned",
+          "effectiveness": "medium"
+        }
+      ],
+      "residual_risk": "low"
+    },
+    "R03": {
+      "risk_title": "Perte ou Vol du Device",
+      "inherent_risk": "medium",
+      "controls": [
+        {
+          "id": "C01",
+          "title": "Chiffrement Disque (FileVault)",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high"
+        },
+        {
+          "id": "C08",
+          "title": "Procédure de Wipe Distant",
+          "type": "corrective",
+          "status": "planned",
+          "effectiveness": "high"
+        }
+      ],
+      "residual_risk": "low"
+    },
+    "R04": {
+      "risk_title": "Intégrité du Modèle (Supply Chain)",
+      "inherent_risk": "medium",
+      "controls": [
+        {
+          "id": "C03",
+          "title": "Registre des Modèles",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "high"
+        },
+        {
+          "id": "C07",
+          "title": "Vérification Intégrité Modèle",
+          "type": "detective",
+          "status": "planned",
+          "effectiveness": "high"
+        }
+      ],
+      "residual_risk": "low"
+    },
+    "R05": {
+      "risk_title": "Non-Conformité Licensing",
+      "inherent_risk": "medium",
+      "controls": [
+        {
+          "id": "C03",
+          "title": "Registre des Modèles",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "high"
+        },
+        {
+          "id": "C05",
+          "title": "Audit des Licences",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high"
+        }
+      ],
+      "residual_risk": "low"
+    },
+    "R06": {
+      "risk_title": "Sur-dépendance aux Réponses du Modèle",
+      "inherent_risk": "medium",
+      "controls": [
+        {
+          "id": "C06",
+          "title": "Monitoring des Sorties",
+          "type": "detective",
+          "status": "planned",
+          "effectiveness": "medium"
+        },
+        {
+          "id": "C09",
+          "title": "Human-in-the-Loop",
+          "type": "corrective",
+          "status": "implemented",
+          "effectiveness": "high"
+        }
+      ],
+      "residual_risk": "low"
+    },
+    "R07": {
+      "risk_title": "Exfiltration via Logs/Cache",
+      "inherent_risk": "medium",
+      "controls": [
+        {
+          "id": "C01",
+          "title": "Chiffrement Disque (FileVault)",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high"
+        },
+        {
+          "id": "C04",
+          "title": "Politique de Logging Minimale",
+          "type": "preventive",
+          "status": "planned",
+          "effectiveness": "high"
+        }
+      ],
+      "residual_risk": "low"
+    }
+  },
+  "summary": {
+    "total_risks": 7,
+    "residual_risk_distribution": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 6
+    },
+    "total_controls": 9,
+    "control_implementation_status": {
+      "implemented": 3,
+      "in_progress": 0,
+      "planned": 6
+    },
+    "key_findings": [
+      "Le déploiement on-device réduit les risques de fuite réseau",
+      "Le chiffrement disque est critique pour la protection des assets",
+      "La validation des entrées reste le principal défi de sécurité",
+      "La gouvernance des modèles (licensing, intégrité) doit être formalisée"
+    ],
+    "recommendations": [
+      "Implémenter une validation des prompts avant inférence",
+      "Établir un registre formel des modèles avec vérification d'intégrité",
+      "Définir une politique de logging minimisant la rétention de données",
+      "Former les utilisateurs sur les limites des SLMs (éviter sur-dépendance)"
+    ]
+  }
+}

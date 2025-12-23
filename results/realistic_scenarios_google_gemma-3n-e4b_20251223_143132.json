@@ -1,0 +1,302 @@
+{
+  "model_id": "google/gemma-3n-e4b",
+  "timestamp": "2025-12-23T14:31:32.637973",
+  "seed": 42,
+  "framework_version": "2.0",
+  "datasets_used": {
+    "flare_finqa": {
+      "name": "ChanceFocus/flare-finqa",
+      "description": "Financial QA with numerical reasoning from SEC filings",
+      "citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "split": "test"
+    },
+    "flare_fpb": {
+      "name": "ChanceFocus/flare-fpb",
+      "description": "Financial PhraseBank - Sentiment analysis on financial news",
+      "citation": "Malo et al., 2014 - Good debt or bad debt: Detecting semantic orientations in economic texts",
+      "split": "test"
+    },
+    "flare_convfinqa": {
+      "name": "ChanceFocus/flare-convfinqa",
+      "description": "Conversational Financial QA - Multi-turn dialogues",
+      "citation": "Chen et al., 2022 - ConvFinQA: Exploring the Chain of Numerical Reasoning",
+      "split": "test"
+    },
+    "sujet_rag_fr": {
+      "name": "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
+      "description": "French financial RAG dataset based on French company reports",
+      "citation": "Sujet AI, 2024 (Qualitative assessment - no gold answers available)",
+      "split": "train"
+    },
+    "twitter_financial": {
+      "name": "zeroshot/twitter-financial-news-sentiment",
+      "description": "Financial sentiment from Twitter/X posts",
+      "citation": "ZeroShot, 2023",
+      "split": "train"
+    }
+  },
+  "sample_size_rationale": {
+    "financial_qa": {
+      "n": 50,
+      "dataset_size": 1147,
+      "justification": "FinQA test set: 1147 samples. 50 samples provides 95% CI width ~±14% at 75% accuracy.",
+      "power": "Sufficient to detect 15% accuracy difference between models (alpha=0.05, power=0.8)"
+    },
+    "sentiment": {
+      "n": 100,
+      "dataset_size": 970,
+      "justification": "FPB test set: 970 samples. 100 samples provides 95% CI width ~±10% at baseline accuracy.",
+      "power": "Sufficient to detect 10% accuracy difference (alpha=0.05, power=0.85)"
+    },
+    "conversational_qa": {
+      "n": 30,
+      "dataset_size": 1490,
+      "justification": "ConvFinQA test set: 1490 samples. 30 samples for exploratory multi-turn evaluation.",
+      "power": "Sufficient for preliminary assessment; larger samples recommended for publication claims"
+    },
+    "info_extraction": {
+      "n": 30,
+      "dataset_size": 1147,
+      "justification": "Uses FinQA contexts. 30 samples for structural validity assessment.",
+      "power": "Qualitative metric (JSON validity) - sample sufficient for capability demonstration",
+      "metric_type": "structural_validity",
+      "limitation": "No gold JSON available - measures structure not content accuracy"
+    },
+    "multilingual_fr": {
+      "n": 30,
+      "dataset_size": 28880,
+      "justification": "Sujet FR dataset: 28880 samples. 30 samples for qualitative language assessment.",
+      "power": "Qualitative only - no gold answers available for quantitative evaluation",
+      "metric_type": "qualitative_assessment",
+      "limitation": "No gold answers - metrics are heuristic (language detection, response length)"
+    },
+    "twitter_sentiment": {
+      "n": 50,
+      "dataset_size": 9543,
+      "justification": "Twitter Financial: 9543 train samples. 50 samples for cross-domain validation.",
+      "power": "Sufficient to validate sentiment transfer across domains"
+    }
+  },
+  "results": {
+    "financial_qa": {
+      "scenario_name": "financial_qa",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 50,
+      "metrics": {
+        "exact_match_strict": 0.08,
+        "exact_match_strict_ci_95": [
+          0.02,
+          0.16
+        ],
+        "numerical_accuracy": 0.28,
+        "numerical_accuracy_ci_95": [
+          0.16,
+          0.4
+        ],
+        "f1_score": 0.0036,
+        "f1_score_ci_95": [
+          0.0,
+          0.0082
+        ],
+        "answer_present": 0.08,
+        "answer_present_ci_95": [
+          0.02,
+          0.16
+        ],
+        "success_rate": 1.0
+      },
+      "avg_latency_ms": 9511.7,
+      "total_time_seconds": 475.68,
+      "dataset_source": "ChanceFocus/flare-finqa",
+      "dataset_citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "FinQA test set: 1147 samples. 50 samples provides 95% CI width ~±14% at 75% accuracy.",
+        "power_analysis": "Sufficient to detect 15% accuracy difference between models (alpha=0.05, power=0.8)",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T14:08:19.646405"
+    },
+    "sentiment": {
+      "scenario_name": "financial_sentiment",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 100,
+      "metrics": {
+        "accuracy": 0.73,
+        "accuracy_ci_95": [
+          0.64,
+          0.82
+        ],
+        "accuracy_std": 0.4462,
+        "macro_f1": 0.7367,
+        "correct": 73,
+        "total": 100,
+        "per_class_f1": {
+          "positive": 0.7619,
+          "negative": 0.7586,
+          "neutral": 0.6897
+        }
+      },
+      "avg_latency_ms": 353.05,
+      "total_time_seconds": 35.33,
+      "dataset_source": "ChanceFocus/flare-fpb",
+      "dataset_citation": "Malo et al., 2014 - Good debt or bad debt: Detecting semantic orientations in economic texts",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "FPB test set: 970 samples. 100 samples provides 95% CI width ~±10% at baseline accuracy.",
+        "power_analysis": "Sufficient to detect 10% accuracy difference (alpha=0.05, power=0.85)",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T14:08:58.162353"
+    },
+    "conversational": {
+      "scenario_name": "conversational_qa",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 30,
+      "metrics": {
+        "exact_match_strict": 0.0333,
+        "exact_match_strict_ci_95": [
+          0.0,
+          0.1
+        ],
+        "numerical_accuracy": 0.1333,
+        "numerical_accuracy_ci_95": [
+          0.0333,
+          0.2667
+        ],
+        "answer_present": 0.0333,
+        "answer_present_ci_95": [
+          0.0,
+          0.1
+        ],
+        "success_rate": 1.0
+      },
+      "avg_latency_ms": 5622.96,
+      "total_time_seconds": 168.72,
+      "dataset_source": "ChanceFocus/flare-convfinqa",
+      "dataset_citation": "Chen et al., 2022 - ConvFinQA: Exploring the Chain of Numerical Reasoning",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "ConvFinQA test set: 1490 samples. 30 samples for exploratory multi-turn evaluation.",
+        "power_analysis": "Sufficient for preliminary assessment; larger samples recommended for publication claims",
+        "limitations": [
+          "Multi-turn context may be truncated"
+        ]
+      },
+      "timestamp": "2025-12-23T14:11:48.877385"
+    },
+    "extraction": {
+      "scenario_name": "info_extraction",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 30,
+      "metrics": {
+        "json_valid_rate": 0.7667,
+        "json_valid_rate_ci_95": [
+          0.6,
+          0.9
+        ],
+        "valid_json_count": 23,
+        "avg_fields_extracted": 3.0667,
+        "avg_fields_ci_95": [
+          2.4,
+          3.6
+        ],
+        "grounding_rate": 0.7163,
+        "grounding_rate_ci_95": [
+          0.5764,
+          0.8591
+        ],
+        "json_mode_stats": {
+          "none": 7,
+          "json_schema_constrained": 22,
+          "prompt_only_fallback": 1
+        },
+        "metric_type": "structural_validity_with_grounding"
+      },
+      "avg_latency_ms": 25061.49,
+      "total_time_seconds": 939.21,
+      "dataset_source": "ChanceFocus/flare-finqa",
+      "dataset_citation": "Chen et al., 2021 - FinQA: A Dataset of Numerical Reasoning over Financial Data",
+      "methodology": {
+        "metric_type": "structural_validity_with_grounding",
+        "sample_size_justification": "Uses FinQA contexts. 30 samples for structural validity assessment.",
+        "power_analysis": "Qualitative metric (JSON validity) - sample sufficient for capability demonstration",
+        "json_strategy": "Try constrained mode first, fallback to manual extraction",
+        "grounding_explanation": "Measures % of numbers in JSON that exist in source text",
+        "limitations": [
+          "No gold JSON available - measures structure not content accuracy",
+          "Field presence does not guarantee field correctness",
+          "Grounding only checks numbers, not text content accuracy"
+        ]
+      },
+      "timestamp": "2025-12-23T14:27:29.251177"
+    },
+    "twitter_sentiment": {
+      "scenario_name": "twitter_sentiment",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 50,
+      "metrics": {
+        "accuracy": 0.52,
+        "accuracy_ci_95": [
+          0.38,
+          0.64
+        ],
+        "accuracy_std": 0.5047,
+        "macro_f1": 0.4959,
+        "correct": 26,
+        "total": 50,
+        "per_class_f1": {
+          "positive": 0.4,
+          "negative": 0.5161,
+          "neutral": 0.5714
+        }
+      },
+      "avg_latency_ms": 344.9,
+      "total_time_seconds": 17.26,
+      "dataset_source": "zeroshot/twitter-financial-news-sentiment",
+      "dataset_citation": "ZeroShot, 2023",
+      "methodology": {
+        "metric_type": "quantitative",
+        "sample_size_justification": "Twitter Financial: 9543 train samples. 50 samples for cross-domain validation.",
+        "power_analysis": "Sufficient to validate sentiment transfer across domains",
+        "limitations": []
+      },
+      "timestamp": "2025-12-23T14:27:48.496733"
+    },
+    "multilingual_fr": {
+      "scenario_name": "multilingual_fr",
+      "model_id": "google/gemma-3n-e4b",
+      "num_samples": 30,
+      "metrics": {
+        "french_response_rate": 1.0,
+        "french_response_rate_ci_95": [
+          1.0,
+          1.0
+        ],
+        "avg_response_length": 293.6333,
+        "avg_response_length_ci_95": [
+          242.1925,
+          347.5875
+        ],
+        "success_rate": 1.0,
+        "metric_type": "qualitative_assessment",
+        "is_qualitative": true
+      },
+      "avg_latency_ms": 7317.24,
+      "total_time_seconds": 219.53,
+      "dataset_source": "sujet-ai/Sujet-Financial-RAG-FR-Dataset",
+      "dataset_citation": "Sujet AI, 2024 (Qualitative assessment - no gold answers available)",
+      "methodology": {
+        "metric_type": "qualitative_assessment",
+        "sample_size_justification": "Sujet FR dataset: 28880 samples. 30 samples for qualitative language assessment.",
+        "power_analysis": "Qualitative only - no gold answers available for quantitative evaluation",
+        "limitations": [
+          "No gold answers available - metrics are heuristic",
+          "Language detection is based on simple keyword matching",
+          "Cannot assess response correctness or relevance quantitatively"
+        ]
+      },
+      "timestamp": "2025-12-23T14:31:32.636243"
+    }
+  }
+}
