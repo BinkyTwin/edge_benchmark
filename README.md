@@ -5,7 +5,8 @@
 A multi-dimensional benchmarking framework for evaluating Small Language Models (SLMs) on Apple Silicon in regulated banking contexts.
 
 [![arXiv](https://img.shields.io/badge/arXiv-2025.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2025.XXXXX)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
 
 ---
 
@@ -20,33 +21,47 @@ We evaluate three dimensions:
 - **Capability**: Banking intent classification, financial sentiment, code generation
 - **Risk Analysis**: NIST AI RMF 1.0 / OWASP Top 10 LLM assessment, license audit
 
+### Business Use Cases
+
+This framework is designed for:
+
+| Use Case | Description | Key Metrics |
+|----------|-------------|-------------|
+| **Branch Advisor Assistant** | Real-time customer query classification and response drafting | TTFT < 500ms, Banking77 accuracy |
+| **Document Summarization** | Automated summarization of financial reports and contracts | Throughput > 20 tokens/s |
+| **Compliance Pre-screening** | Structured extraction of compliance-relevant information | JSON validity rate, extraction accuracy |
+| **Offline Mobile Banking** | On-device inference for privacy-sensitive transactions | Memory footprint, battery efficiency |
+| **Customer Sentiment Analysis** | Real-time analysis of customer feedback and communications | Financial PhraseBank accuracy |
+
 ### Key Results
 
 | Metric | Range | Notes |
 |--------|-------|-------|
-| TTFT (Interactive) | 440–737 ms | GGUF faster for first token |
+| TTFT (Interactive) | 296–2629 ms | GGUF faster for first token |
+| TTFT (Summarization) | 296–6732 ms | Max observed: 10.9s (Qwen MLX) |
 | Throughput | 7–41 tokens/s | MLX better for sustained throughput |
 | Banking77 Accuracy | 59–64% | Zero-shot baseline |
 | Financial PhraseBank | 72–73% | Zero-shot baseline |
 | HumanEval Pass@1 | 40–57% | Full benchmark (164 problems) |
+| JSON Valid Rate | 100% | All models, all runs |
 
 ### Models Evaluated
 
-| Model | Publisher | Format | Quantization | Parameters |
-|-------|-----------|--------|--------------|------------|
-| Gemma 3n E4B | Google | MLX / GGUF | 4-bit / Q4_K_M | 4B |
-| Qwen3-VL 4B | Alibaba | MLX / GGUF | 4-bit / Q4_K_M | 4B |
-| Ministral 3 3B | Mistral AI | GGUF | Q4_K_M | 3B |
+| Model | Publisher | Format | Quantization | Parameters | License |
+|-------|-----------|--------|--------------|------------|---------|
+| Gemma 3n E4B | Google | MLX / GGUF | 4-bit / Q4_K_M | 4B | Gemma Terms (Restricted) |
+| Qwen3-VL 4B | Alibaba | MLX / GGUF | 4-bit / Q4_K_M | 4B | Apache 2.0 |
+| Ministral 3 3B | Mistral AI | GGUF | Q4_K_M | 3B | Apache 2.0 |
 
 ### Hardware & Software Stack
 
 **Hardware**: MacBook Air M4 (2024), 16 GB unified memory
 
 **Software**:
-- LM Studio 0.3.9 (build 9)
-- llama.cpp b4547
-- MLX 0.22.0 / mlx-lm 0.21.0
-- Python 3.14.0a2
+- LM Studio 0.3.36 (Build 1)
+- llama.cpp b7437 (commit ec98e20)
+- LM Studio MLX v0.37.0
+- Python 3.14.0
 
 ### Quick Start
 
@@ -80,6 +95,17 @@ python scripts/generate_report.py --input results/ --output report/ --compliance
 > - Not production-ready validation (zero-shot results suited for triage, not autonomous decisions)
 > - Not security testing (controls not empirically tested against adversarial attacks)
 > - Not full memory measurement (RSS of benchmark process, not total LM Studio footprint)
+
+### Reusability
+
+**This framework is fully reusable and extensible.** You can:
+
+- Add new models by editing `configs/models.yaml`
+- Define custom scenarios in `configs/scenarios.yaml`
+- Extend capability evaluations in `src/capability/`
+- Adapt risk analysis frameworks in `src/compliance/`
+
+The modular architecture allows easy integration into your own evaluation pipelines.
 
 ### Project Structure
 
@@ -121,15 +147,29 @@ Trois axes d'évaluation :
 - **Capacités** : Classification bancaire, analyse de sentiment, génération de code
 - **Analyse de risques** : Évaluation NIST AI RMF 1.0 / OWASP Top 10 LLM, audit des licences
 
+### Cas d'Usage Métier
+
+Ce framework est conçu pour :
+
+| Cas d'Usage | Description | Métriques Clés |
+|-------------|-------------|----------------|
+| **Assistant Conseiller en Agence** | Classification temps réel des requêtes clients | TTFT < 500ms, accuracy Banking77 |
+| **Résumé de Documents** | Synthèse automatique de rapports financiers | Débit > 20 tokens/s |
+| **Pré-filtrage Conformité** | Extraction structurée d'informations réglementaires | Taux JSON valide, accuracy extraction |
+| **Banque Mobile Hors-ligne** | Inférence on-device pour transactions sensibles | Empreinte mémoire |
+| **Analyse de Sentiment Client** | Analyse temps réel des retours clients | Accuracy Financial PhraseBank |
+
 ### Résultats Clés
 
 | Métrique | Plage | Notes |
 |----------|-------|-------|
-| TTFT (Interactif) | 440–737 ms | GGUF plus rapide pour le premier token |
+| TTFT (Interactif) | 296–2629 ms | GGUF plus rapide pour le premier token |
+| TTFT (Summarization) | 296–6732 ms | Max observé : 10.9s (Qwen MLX) |
 | Débit | 7–41 tokens/s | MLX meilleur pour le débit soutenu |
 | Banking77 Accuracy | 59–64% | Baseline zero-shot |
 | Financial PhraseBank | 72–73% | Baseline zero-shot |
 | HumanEval Pass@1 | 40–57% | Benchmark complet (164 problèmes) |
+| Taux JSON Valide | 100% | Tous modèles, tous runs |
 
 ### Installation
 
@@ -214,6 +254,17 @@ python scripts/generate_report.py --input results/ --output report/ --format all
 > - Pas de tests de sécurité empiriques (contrôles non testés contre attaques adversariales)
 > - Pas de mesure mémoire complète (RSS du processus benchmark, pas l'empreinte LM Studio)
 
+### Réutilisabilité
+
+**Ce framework est entièrement réutilisable et extensible.** Vous pouvez :
+
+- Ajouter de nouveaux modèles via `configs/models.yaml`
+- Définir des scénarios personnalisés dans `configs/scenarios.yaml`
+- Étendre les évaluations de capacités dans `src/capability/`
+- Adapter les frameworks d'analyse de risques dans `src/compliance/`
+
+L'architecture modulaire permet une intégration facile dans vos propres pipelines d'évaluation.
+
 ### Licences des Modèles
 
 | Modèle | Licence | Usage Commercial |
@@ -261,11 +312,42 @@ edge_benchmark/
 
 ## License
 
-This project is released under the MIT License. See [LICENSE](LICENSE) for details.
+This project is released under the **MIT License**. You are free to use, modify, and distribute this framework for both academic and commercial purposes.
 
-## Contact
+See [LICENSE](LICENSE) for full details.
 
-- **Abdelatif Djeddou** - abdelatif.djeddou@edu.devinci.fr
-- **Manissa Bouda** - manissa.bouda@edu.devinci.fr
+```
+MIT License
 
-École de Management Léonard de Vinci
+Copyright (c) 2025 Abdelatif Djeddou, Manissa Bouda
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software...
+```
+
+---
+
+## Contact & Authors
+
+### Abdelatif Djeddou
+- Email: abdelatif.djeddou@edu.devinci.fr
+- LinkedIn: [linkedin.com/in/abdelatifdjeddou](https://www.linkedin.com/in/abdelatifdjeddou/)
+
+### Manissa Bouda
+- Email: manissa.bouda@edu.devinci.fr
+- LinkedIn: [linkedin.com/in/manissa-bouda](https://www.linkedin.com/in/manissa-bouda/)
+
+**Institution**: École de Management Léonard de Vinci, Paris, France
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+
+## Acknowledgments
+
+This research was conducted as part of the Master's program at EMLV (École de Management Léonard de Vinci).
