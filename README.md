@@ -347,7 +347,3 @@ copies of the Software...
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
-
-## Acknowledgments
-
-This research was conducted as part of the Master's program at EMLV (École de Management Léonard de Vinci).
