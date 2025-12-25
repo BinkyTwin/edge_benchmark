@@ -446,7 +446,12 @@ class ScenarioExecutor:
         """List available scenario names."""
         return list(self.scenarios.keys())
     
-    def get_prompts(self, scenario_name: str, num_prompts: int = 20) -> list[dict]:
+    def get_prompts(
+        self,
+        scenario_name: str,
+        num_prompts: int = 20,
+        model_format: Optional[str] = None,
+    ) -> list[dict]:
         """
         Generate prompts for a scenario.
         
@@ -496,10 +501,28 @@ class ScenarioExecutor:
                 
                 # Use LM Studio format: json_schema with strict=True
                 # https://lmstudio.ai/docs/developer/openai-compat/structured-output
+                # MLX/Outlines may reject JSON schema with union types; fallback to json_object.
+                response_format = prompt_data.get("response_format")
+                if model_format == "mlx":
+                    # LM Studio MLX backend requires json_schema or text.
+                    # Use a permissive schema with string-typed fields to avoid union types.
+                    fields = prompt_data.get("expected_fields", [])
+                    response_format = {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "mlx_json_extraction",
+                            "strict": "true",
+                            "schema": {
+                                "type": "object",
+                                "properties": {f: {"type": "string"} for f in fields},
+                            },
+                        },
+                    }
+
                 prompts.append({
                     "messages": messages,
                     "max_tokens": scenario.max_tokens,
-                    "response_format": prompt_data.get("response_format"),
+                    "response_format": response_format,
                     "expected_fields": prompt_data.get("expected_fields", []),
                 })
         
@@ -545,5 +568,3 @@ class ScenarioExecutor:
             result["error"] = str(e)
         
         return result
-
-

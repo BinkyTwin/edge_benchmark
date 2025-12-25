@@ -142,6 +142,7 @@ class CodingEvaluator:
         system_prompt = """You are an expert Python programmer.
 Complete the given function according to its docstring.
 Write only the function body, no explanations.
+Do not include Markdown or code fences.
 Ensure the code is syntactically correct."""
         
         results = []
@@ -165,7 +166,7 @@ Ensure the code is syntactically correct."""
                 temperature=0,
                 max_tokens=256,
                 stream=False,
-                stop=["\ndef ", "\nclass ", "\nif __name__"],
+                stop=["\nclass ", "\nif __name__"],
             )
             
             latencies.append(result.metrics.total_time_ms)
@@ -363,5 +364,4 @@ Ensure the code is syntactically correct."""
         print(f"Avg latency:     {result.avg_latency_ms:.1f} ms")
         print(f"Total time:      {result.total_time_seconds:.1f}s")
         print(f"{'─'*40}")
-
 

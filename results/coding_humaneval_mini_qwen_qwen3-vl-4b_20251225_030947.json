@@ -1,0 +1,12 @@
+{
+  "model_id": "qwen/qwen3-vl-4b",
+  "dataset_name": "humaneval_mini",
+  "pass_at_1": 0.5732,
+  "syntax_valid_rate": 0.878,
+  "num_samples": 164,
+  "num_passed": 94,
+  "num_syntax_valid": 144,
+  "avg_latency_ms": 4023.16,
+  "total_time_seconds": 660.27,
+  "timestamp": "2025-12-25T03:09:47.052465"
+}

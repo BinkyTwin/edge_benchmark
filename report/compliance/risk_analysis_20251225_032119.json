@@ -2,40 +2,40 @@
   "metadata": {
     "title": "Risk Analysis Report - On-Device LLM Deployment",
     "framework": "NIST AI RMF 1.0 + OWASP Top 10 LLM",
-    "generated_at": "2025-12-23T22:04:17.783177",
+    "generated_at": "2025-12-25T03:21:19.144341",
     "scope": "Consumer-grade Apple Silicon laptop, banking context"
   },
   "threat_model": {
     "assets": {
-      "model": "SLM quantifié (GGUF/MLX) déployé sur device",
-      "inference_data": "Données traitées pendant l'inférence (prompts, réponses)",
-      "device": "Laptop Apple Silicon avec le modèle",
-      "logs": "Logs d'inférence et métriques",
-      "credentials": "Éventuelles clés API ou tokens"
+      "model": "Quantized SLM (GGUF/MLX) deployed on device",
+      "inference_data": "Data processed during inference (prompts, responses)",
+      "device": "Apple Silicon laptop with the model",
+      "logs": "Inference logs and metrics",
+      "credentials": "Potential API keys or tokens"
     },
     "adversaries": [
       {
         "type": "external_attacker",
         "capability": "medium",
-        "motivation": "Accès aux données bancaires via prompt injection"
+        "motivation": "Access to banking data via prompt injection"
       },
       {
         "type": "insider_threat",
         "capability": "high",
-        "motivation": "Exfiltration de données via le modèle"
+        "motivation": "Data exfiltration via the model"
       },
       {
         "type": "device_thief",
         "capability": "low",
-        "motivation": "Accès physique au device perdu/volé"
+        "motivation": "Physical access to lost/stolen device"
       }
     ],
     "attack_surfaces": [
-      "Input utilisateur (prompts) - risque injection",
-      "Documents ingérés dans le contexte",
-      "Sortie du modèle (réponses générées)",
-      "Stockage local (modèle, cache, logs)",
-      "Supply chain du modèle (origine, intégrité)"
+      "User input (prompts) - injection risk",
+      "Documents ingested in context",
+      "Model output (generated responses)",
+      "Local storage (model, cache, logs)",
+      "Model supply chain (origin, integrity)"
     ]
   },
   "risk_taxonomy": [
@@ -43,7 +43,7 @@
       "id": "R01",
       "category": "LLM01: Prompt Injection",
       "title": "Prompt Injection via Documents",
-      "description": "Un document interne ou externe contenant des instructions malveillantes \n                pourrait manipuler le modèle pour révéler des informations sensibles \n                ou exécuter des actions non autorisées.",
+      "description": "An internal or external document containing malicious instructions \n                could manipulate the model to reveal sensitive information \n                or execute unauthorized actions.",
       "likelihood": "medium",
       "impact": "high",
       "inherent_risk": "high",
@@ -61,8 +61,8 @@
     {
       "id": "R02",
       "category": "LLM06: Sensitive Information Disclosure",
-      "title": "Fuite de Données Sensibles via Réponses",
-      "description": "Le modèle pourrait inclure des informations sensibles (numéros de compte, \n                données client) dans ses réponses, que ce soit par mémorisation du contexte \n                ou par génération inappropriée.",
+      "title": "Sensitive Data Leak via Responses",
+      "description": "The model could include sensitive information (account numbers, \n                client data) in its responses, whether through context memorization \n                or inappropriate generation.",
       "likelihood": "medium",
       "impact": "high",
       "inherent_risk": "high",
@@ -80,7 +80,7 @@
       "id": "R03",
       "category": "Device Loss/Theft",
       "title": "Perte ou Vol du Device",
-      "description": "Un laptop contenant le modèle et potentiellement des données en cache \n                pourrait être perdu ou volé, exposant les assets locaux.",
+      "description": "A laptop containing the model and potentially cached data \n                could be lost or stolen, exposing local assets.",
       "likelihood": "low",
       "impact": "high",
       "inherent_risk": "medium",
@@ -99,8 +99,8 @@
     {
       "id": "R04",
       "category": "LLM05: Supply Chain Vulnerabilities",
-      "title": "Intégrité du Modèle (Supply Chain)",
-      "description": "Le modèle téléchargé pourrait être modifié, corrompu, ou provenir \n                d'une source non fiable. Absence de vérification d'intégrité.",
+      "title": "Model Integrity (Supply Chain)",
+      "description": "The downloaded model could be modified, corrupted, or come from \n                an untrusted source. Lack of integrity verification.",
       "likelihood": "low",
       "impact": "high",
       "inherent_risk": "medium",
@@ -117,8 +117,8 @@
     {
       "id": "R05",
       "category": "Licensing/Compliance",
-      "title": "Non-Conformité Licensing",
-      "description": "Utilisation de modèles sans vérification des termes de licence, \n                pouvant entraîner des violations de propriété intellectuelle \n                ou des restrictions d'usage commercial.",
+      "title": "Licensing Non-Compliance",
+      "description": "Use of models without verification of license terms,\n                potentially leading to intellectual property violations \n                or commercial use restrictions.",
       "likelihood": "medium",
       "impact": "medium",
       "inherent_risk": "medium",
@@ -134,8 +134,8 @@
     {
       "id": "R06",
       "category": "LLM09: Overreliance",
-      "title": "Sur-dépendance aux Réponses du Modèle",
-      "description": "Les utilisateurs pourraient faire confiance aveuglément aux réponses \n                du modèle sans vérification, entraînant des erreurs dans les processus \n                bancaires critiques.",
+      "title": "Over-reliance on Model Responses",
+      "description": "Users could blindly trust the model's responses \n                without verification, leading to errors in critical \n                banking processes.",
       "likelihood": "medium",
       "impact": "medium",
       "inherent_risk": "medium",
@@ -153,7 +153,7 @@
       "id": "R07",
       "category": "Data Exfiltration",
       "title": "Exfiltration via Logs/Cache",
-      "description": "Les logs d'inférence ou le cache local pourraient contenir des données \n                sensibles et être exfiltrés via des vecteurs non contrôlés.",
+      "description": "Inference logs or local cache could contain sensitive data\n                and be exfiltrated via uncontrolled vectors.",
       "likelihood": "low",
       "impact": "high",
       "inherent_risk": "medium",
@@ -172,8 +172,8 @@
   "controls": [
     {
       "id": "C01",
-      "title": "Chiffrement Disque (FileVault)",
-      "description": "Activer le chiffrement intégral du disque sur tous les devices.",
+      "title": "Disk Encryption (FileVault)",
+      "description": "Enable full disk encryption on all devices.",
       "type": "preventive",
       "mitigates_risks": [
         "R03",
@@ -184,8 +184,8 @@
     },
     {
       "id": "C02",
-      "title": "Validation des Entrées",
-      "description": "Implémenter une validation et sanitization des prompts utilisateur.",
+      "title": "Input Validation",
+      "description": "Implement validation and sanitization of user prompts.",
       "type": "preventive",
       "mitigates_risks": [
         "R01",
@@ -196,8 +196,8 @@
     },
     {
       "id": "C03",
-      "title": "Registre des Modèles",
-      "description": "Maintenir un registre interne des modèles approuvés avec hash SHA256.",
+      "title": "Model Registry",
+      "description": "Maintain an internal registry of approved models with SHA256 hash.",
       "type": "preventive",
       "mitigates_risks": [
         "R04",
@@ -208,8 +208,8 @@
     },
     {
       "id": "C04",
-      "title": "Politique de Logging Minimale",
-      "description": "Ne pas logger les données sensibles, purger régulièrement les logs.",
+      "title": "Minimal Logging Policy",
+      "description": "Do not log sensitive data, regularly purge logs.",
       "type": "preventive",
       "mitigates_risks": [
         "R07",
@@ -221,7 +221,7 @@
     {
       "id": "C05",
       "title": "Audit des Licences",
-      "description": "Vérifier et documenter les licences avant déploiement.",
+      "description": "Verify and document licenses before deployment.",
       "type": "preventive",
       "mitigates_risks": [
         "R05"
@@ -231,8 +231,8 @@
     },
     {
       "id": "C06",
-      "title": "Monitoring des Sorties",
-      "description": "Détecter les patterns de données sensibles dans les réponses.",
+      "title": "Output Monitoring",
+      "description": "Detect sensitive data patterns in responses.",
       "type": "detective",
       "mitigates_risks": [
         "R02",
@@ -243,8 +243,8 @@
     },
     {
       "id": "C07",
-      "title": "Vérification Intégrité Modèle",
-      "description": "Vérifier le hash du modèle au démarrage.",
+      "title": "Model Integrity Verification",
+      "description": "Verify model hash at startup.",
       "type": "detective",
       "mitigates_risks": [
         "R04"
@@ -254,8 +254,8 @@
     },
     {
       "id": "C08",
-      "title": "Procédure de Wipe Distant",
-      "description": "Capacité à effacer les données du device à distance (MDM).",
+      "title": "Remote Wipe Procedure",
+      "description": "Ability to remotely wipe device data (MDM).",
       "type": "corrective",
       "mitigates_risks": [
         "R03"
@@ -266,7 +266,7 @@
     {
       "id": "C09",
       "title": "Human-in-the-Loop",
-      "description": "Exiger validation humaine pour les décisions critiques.",
+      "description": "Require human validation for critical decisions.",
       "type": "corrective",
       "mitigates_risks": [
         "R06"
@@ -283,7 +283,7 @@
         "level": "high"
       },
       "R02": {
-        "title": "Fuite de Données Sensibles via Réponses",
+        "title": "Sensitive Data Leak via Responses",
         "category": "LLM06: Sensitive Information Disclosure",
         "level": "high"
       },
@@ -293,17 +293,17 @@
         "level": "medium"
       },
       "R04": {
-        "title": "Intégrité du Modèle (Supply Chain)",
+        "title": "Model Integrity (Supply Chain)",
         "category": "LLM05: Supply Chain Vulnerabilities",
         "level": "medium"
       },
       "R05": {
-        "title": "Non-Conformité Licensing",
+        "title": "Licensing Non-Compliance",
         "category": "Licensing/Compliance",
         "level": "medium"
       },
       "R06": {
-        "title": "Sur-dépendance aux Réponses du Modèle",
+        "title": "Over-reliance on Model Responses",
         "category": "LLM09: Overreliance",
         "level": "medium"
       },
@@ -320,7 +320,7 @@
         "level": "medium"
       },
       "R02": {
-        "title": "Fuite de Données Sensibles via Réponses",
+        "title": "Sensitive Data Leak via Responses",
         "category": "LLM06: Sensitive Information Disclosure",
         "level": "low"
       },
@@ -330,17 +330,17 @@
         "level": "low"
       },
       "R04": {
-        "title": "Intégrité du Modèle (Supply Chain)",
+        "title": "Model Integrity (Supply Chain)",
         "category": "LLM05: Supply Chain Vulnerabilities",
         "level": "low"
       },
       "R05": {
-        "title": "Non-Conformité Licensing",
+        "title": "Licensing Non-Compliance",
         "category": "Licensing/Compliance",
         "level": "low"
       },
       "R06": {
-        "title": "Sur-dépendance aux Réponses du Modèle",
+        "title": "Over-reliance on Model Responses",
         "category": "LLM09: Overreliance",
         "level": "low"
       },
@@ -358,7 +358,7 @@
       "controls": [
         {
           "id": "C02",
-          "title": "Validation des Entrées",
+          "title": "Input Validation",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "medium"
@@ -367,26 +367,26 @@
       "residual_risk": "medium"
     },
     "R02": {
-      "risk_title": "Fuite de Données Sensibles via Réponses",
+      "risk_title": "Sensitive Data Leak via Responses",
       "inherent_risk": "high",
       "controls": [
         {
           "id": "C02",
-          "title": "Validation des Entrées",
+          "title": "Input Validation",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "medium"
         },
         {
           "id": "C04",
-          "title": "Politique de Logging Minimale",
+          "title": "Minimal Logging Policy",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "high"
         },
         {
           "id": "C06",
-          "title": "Monitoring des Sorties",
+          "title": "Output Monitoring",
           "type": "detective",
           "status": "planned",
           "effectiveness": "medium"
@@ -400,14 +400,14 @@
       "controls": [
         {
           "id": "C01",
-          "title": "Chiffrement Disque (FileVault)",
+          "title": "Disk Encryption (FileVault)",
           "type": "preventive",
           "status": "implemented",
           "effectiveness": "high"
         },
         {
           "id": "C08",
-          "title": "Procédure de Wipe Distant",
+          "title": "Remote Wipe Procedure",
           "type": "corrective",
           "status": "planned",
           "effectiveness": "high"
@@ -416,19 +416,19 @@
       "residual_risk": "low"
     },
     "R04": {
-      "risk_title": "Intégrité du Modèle (Supply Chain)",
+      "risk_title": "Model Integrity (Supply Chain)",
       "inherent_risk": "medium",
       "controls": [
         {
           "id": "C03",
-          "title": "Registre des Modèles",
+          "title": "Model Registry",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "high"
         },
         {
           "id": "C07",
-          "title": "Vérification Intégrité Modèle",
+          "title": "Model Integrity Verification",
           "type": "detective",
           "status": "planned",
           "effectiveness": "high"
@@ -437,12 +437,12 @@
       "residual_risk": "low"
     },
     "R05": {
-      "risk_title": "Non-Conformité Licensing",
+      "risk_title": "Licensing Non-Compliance",
       "inherent_risk": "medium",
       "controls": [
         {
           "id": "C03",
-          "title": "Registre des Modèles",
+          "title": "Model Registry",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "high"
@@ -458,12 +458,12 @@
       "residual_risk": "low"
     },
     "R06": {
-      "risk_title": "Sur-dépendance aux Réponses du Modèle",
+      "risk_title": "Over-reliance on Model Responses",
       "inherent_risk": "medium",
       "controls": [
         {
           "id": "C06",
-          "title": "Monitoring des Sorties",
+          "title": "Output Monitoring",
           "type": "detective",
           "status": "planned",
           "effectiveness": "medium"
@@ -484,14 +484,14 @@
       "controls": [
         {
           "id": "C01",
-          "title": "Chiffrement Disque (FileVault)",
+          "title": "Disk Encryption (FileVault)",
           "type": "preventive",
           "status": "implemented",
           "effectiveness": "high"
         },
         {
           "id": "C04",
-          "title": "Politique de Logging Minimale",
+          "title": "Minimal Logging Policy",
           "type": "preventive",
           "status": "planned",
           "effectiveness": "high"
@@ -515,16 +515,16 @@
       "planned": 6
     },
     "key_findings": [
-      "Le déploiement on-device réduit les risques de fuite réseau",
-      "Le chiffrement disque est critique pour la protection des assets",
-      "La validation des entrées reste le principal défi de sécurité",
-      "La gouvernance des modèles (licensing, intégrité) doit être formalisée"
+      "On-device deployment reduces network leakage risks",
+      "Disk encryption is critical for asset protection",
+      "Input validation remains the main security challenge",
+      "Model governance (licensing, integrity) must be formalized"
     ],
     "recommendations": [
-      "Implémenter une validation des prompts avant inférence",
-      "Établir un registre formel des modèles avec vérification d'intégrité",
-      "Définir une politique de logging minimisant la rétention de données",
-      "Former les utilisateurs sur les limites des SLMs (éviter sur-dépendance)"
+      "Implement prompt validation before inference",
+      "Establish a formal model registry with integrity verification",
+      "Define a logging policy minimizing data retention",
+      "Train users on SLM limitations (avoid over-reliance)"
     ]
   }
 }

@@ -6,6 +6,6 @@ google/gemma-3n-e4b,banking77,0.6343,0.6045,3076,516.17
 mistralai/ministral-3-3b,financial_phrasebank,0.7268,0.7256,970,189.42
 mistralai/ministral-3-3b,banking77,0.594,0.5634,3076,259.55
 google/gemma-3n-e4b,banking77,0.6031,0.5788,3076,2285.69
-mistralai/ministral-3-3b,humaneval_mini,0.0,0.0,164,565.37
-google/gemma-3n-e4b,humaneval_mini,0.0,0.0,164,6029.46
-qwen/qwen3-vl-4b,humaneval_mini,0.0,0.0,164,3054.23
+mistralai/ministral-3-3b,humaneval_mini,0.0,0.0,164,3112.46
+qwen/qwen3-vl-4b,humaneval_mini,0.0,0.0,164,4023.16
+google/gemma-3n-e4b,humaneval_mini,0.0,0.0,164,12305.11

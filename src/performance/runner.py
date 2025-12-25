@@ -189,8 +189,9 @@ class PerformanceRunner:
         
         # Get prompts
         prompts = self.scenario_executor.get_prompts(
-            scenario_name, 
-            num_prompts=config.benchmark_runs
+            scenario_name,
+            num_prompts=config.benchmark_runs,
+            model_format=model_info.get("format"),
         )
         
         # Warm-up
@@ -540,5 +541,4 @@ class PerformanceRunner:
             print(f"{model_id:<30} {m.ttft_mean_ms:<12.1f} {m.output_tps_mean:<10.1f} {m.peak_ram_mb:<10.1f}")
         
         print("=" * 60)
-
 

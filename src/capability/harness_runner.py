@@ -317,7 +317,7 @@ class HarnessRunner:
             if '|' in line and task.lower() in line.lower():
                 parts = [p.strip() for p in line.split('|')]
                 if len(parts) >= 8:
-                            try:
+                    try:
                         # Find the Value column
                         for i, part in enumerate(parts):
                             if part.replace('.', '').replace('-', '').isdigit():
@@ -462,5 +462,4 @@ Answer with only the letter (A, B, C, or D):"""
             "num_samples": len(samples),
             "method": "forced_choice (not logprobs)",
         }
-
 
