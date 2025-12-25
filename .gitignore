@@ -70,6 +70,7 @@ agents.md
 activity_summary.md
 
 # Other files
-TUTORIAL.md
 *.tex
 *.svg
+
+arxiv_article/
